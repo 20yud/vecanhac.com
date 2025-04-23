@@ -10,6 +10,10 @@
     <packaging>pom</packaging>
     <modules>
         <module>vecanhac-start</module>
+        <module>vecanhac-controller</module>
+        <module>vecanhac-application</module>
+        <module>vecanhac-infrastructure</module>
+        <module>vecanhac-domain</module>
     </modules>
 
     <properties>
