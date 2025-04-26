@@ -2,7 +2,7 @@ spring:
   application:
     name: yud20
   datasource:
-    url: jdbc:mysql://localhost:3306/demo
+    url: jdbc:mysql://localhost:3306/vecanhacdb
     username: root
     password: duy123
     driver-class-name: com.mysql.cj.jdbc.Driver
