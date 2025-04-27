@@ -2,9 +2,12 @@ package com.vecanhac.ddd.application.service.event.impl;
 
 import com.vecanhac.ddd.application.dto.EventDetailDTO;
 import com.vecanhac.ddd.application.dto.EventResponseDTO;
+import com.vecanhac.ddd.application.dto.search.EventSearchCriteria;
+import com.vecanhac.ddd.application.dto.search.EventSearchResponseDTO;
 import com.vecanhac.ddd.application.service.event.EventAppService;
 import com.vecanhac.ddd.domain.event.EventEntity;
 import com.vecanhac.ddd.domain.event.EventRepository;
+import com.vecanhac.ddd.domain.event.EventSearchFilter;
 import com.vecanhac.ddd.domain.event.EventTrendingProjection;
 import com.vecanhac.ddd.domain.ticket.TicketRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,19 +42,10 @@ public class EventAppServiceImpl implements EventAppService {
     }
 
     @Override
-    public Optional<EventEntity> getEventById(Long id) {
-        return eventRepository.findById(id);
-    }
-
-    @Override
     public Optional<EventEntity> getEventBySlug(String slug) {
-        return eventRepository.findBySlug(slug);
+        return Optional.empty();
     }
 
-    @Override
-    public List<EventEntity> search(String keyword) {
-        return eventRepository.searchByKeyword(keyword);
-    }
 
     private List<EventResponseDTO> mapToResponseDTOs(List<EventEntity> events) {
         return events.stream()
@@ -103,6 +97,38 @@ public class EventAppServiceImpl implements EventAppService {
             dto.setMinTicketPrice(null);
         }
 
+        return dto;
+    }
+
+    @Override
+    public List<EventSearchResponseDTO> searchEvents(EventSearchCriteria criteria, Pageable pageable) {
+        EventSearchFilter filter = new EventSearchFilter();
+        filter.setKeyword(criteria.getKeyword());
+        filter.setCity(criteria.getCity());
+        filter.setStartDate(criteria.getStartDate());
+        filter.setEndDate(criteria.getEndDate());
+        filter.setFreeOnly(criteria.getFreeOnly());
+        filter.setCategoryId(criteria.getCategoryId());
+
+        Page<EventEntity> page = eventRepository.searchEvents(filter, pageable);
+
+        return page.map(this::mapToSearchResponseDTO).getContent();
+    }
+
+    private EventSearchResponseDTO mapToSearchResponseDTO(EventEntity event) {
+        EventSearchResponseDTO dto = new EventSearchResponseDTO();
+        dto.setId(event.getId());
+        dto.setTitle(event.getTitle());
+        dto.setSlug(event.getSlug());
+        dto.setCoverImageUrl(event.getCoverImageUrl());
+        dto.setStartTime(event.getStartTime());
+        dto.setVenue(event.getVenue());
+        var minPrice = ticketRepository.findMinPriceByEventId(event.getId());
+        if (minPrice != null) {
+            dto.setMinTicketPrice(minPrice.doubleValue());
+        } else {
+            dto.setMinTicketPrice(null); // nếu không có vé
+        }
         return dto;
     }
 

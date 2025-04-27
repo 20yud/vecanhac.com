@@ -3,6 +3,8 @@ package com.vecanhac.ddd.controller.event;
 
 import com.vecanhac.ddd.application.dto.EventDetailDTO;
 import com.vecanhac.ddd.application.dto.EventResponseDTO;
+import com.vecanhac.ddd.application.dto.search.EventSearchCriteria;
+import com.vecanhac.ddd.application.dto.search.EventSearchResponseDTO;
 import com.vecanhac.ddd.application.service.event.EventAppService;
 import com.vecanhac.ddd.domain.event.EventEntity;
 import com.vecanhac.ddd.domain.event.EventTrendingProjection;
@@ -10,9 +12,11 @@ import com.vecanhac.ddd.domain.ticket.TicketRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,8 +44,27 @@ public class EventController {
     }
 
     @GetMapping("/search")
-    public List<EventEntity> searchEvents(@RequestParam(name = "keyword") String keyword) {
-        return eventAppService.search(keyword);
+    public List<EventSearchResponseDTO> searchEvents(
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "12") int size,
+            @RequestParam(name = "city", required = false) String city,
+            @RequestParam(name = "startDate", required = false) String startDate,
+            @RequestParam(name = "endDate", required = false) String endDate,
+            @RequestParam(name = "freeOnly", required = false) Boolean freeOnly,
+            @RequestParam(name = "categoryId", required = false) Long categoryId
+    ) {
+        EventSearchCriteria criteria = new EventSearchCriteria();
+        criteria.setKeyword(keyword);
+        criteria.setCity(city);
+        criteria.setStartDate(startDate != null ? LocalDate.parse(startDate) : null);
+        criteria.setEndDate(endDate != null ? LocalDate.parse(endDate) : null);
+        criteria.setFreeOnly(freeOnly);
+        criteria.setCategoryId(categoryId);
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        return eventAppService.searchEvents(criteria, pageable);
     }
 
     @GetMapping
