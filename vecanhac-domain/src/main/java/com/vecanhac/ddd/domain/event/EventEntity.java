@@ -1,11 +1,13 @@
 package com.vecanhac.ddd.domain.event;
 
 
+import com.vecanhac.ddd.domain.ticket.TicketEntity;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -17,24 +19,32 @@ public class EventEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
-    @Column(columnDefinition = "varchar(255) comment 'title'", nullable = false)
+    @Column(nullable = false, length = 255)
     private String title;
 
-    @Column(columnDefinition = "varchar(255) comment 'title'", nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 255)
     private String slug;
 
+    @Column(columnDefinition = "TEXT")
     private String description;
+
     private String coverImageUrl;
+
     private LocalDateTime startTime;
+
     private LocalDateTime endTime;
+
     private String venue;
-    private Long categoryId;
+
+    private String address;
+
     private String status;
 
+    private LocalDateTime createdAt;
 
+    private Long organizerId;
+
+    private Long locationId;
 }
-
-
-
