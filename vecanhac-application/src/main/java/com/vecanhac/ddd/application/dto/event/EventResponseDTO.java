@@ -1,4 +1,4 @@
-package com.vecanhac.ddd.application.dto;
+package com.vecanhac.ddd.application.dto.event;
 
 import lombok.Data;
 

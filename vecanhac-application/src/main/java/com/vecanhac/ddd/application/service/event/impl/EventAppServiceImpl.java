@@ -1,9 +1,10 @@
 package com.vecanhac.ddd.application.service.event.impl;
 
-import com.vecanhac.ddd.application.dto.EventDetailDTO;
-import com.vecanhac.ddd.application.dto.EventResponseDTO;
+import com.vecanhac.ddd.application.dto.event.EventDetailDTO;
+import com.vecanhac.ddd.application.dto.event.EventResponseDTO;
 import com.vecanhac.ddd.application.dto.search.EventSearchCriteria;
 import com.vecanhac.ddd.application.dto.search.EventSearchResponseDTO;
+import com.vecanhac.ddd.application.mapper.TicketMapper;
 import com.vecanhac.ddd.application.service.event.EventAppService;
 import com.vecanhac.ddd.domain.event.EventEntity;
 import com.vecanhac.ddd.domain.event.EventRepository;
@@ -13,7 +14,6 @@ import com.vecanhac.ddd.domain.ticket.TicketRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import org.springframework.data.domain.Pageable;
@@ -91,11 +91,14 @@ public class EventAppServiceImpl implements EventAppService {
         dto.setAndress(event.getAddress());
 
         var minPrice = ticketRepository.findMinPriceByEventId(id);
-        if (minPrice != null) {
-            dto.setMinTicketPrice(minPrice.doubleValue());
-        } else {
-            dto.setMinTicketPrice(null);
-        }
+        dto.setMinTicketPrice(minPrice != null ? minPrice.doubleValue() : null);
+
+        // ✅ Thêm đoạn này để lấy danh sách vé
+        var tickets = ticketRepository.findByEventId(id)
+                .stream()
+                .map(TicketMapper::toDTO)
+                .toList();
+        dto.setTickets(tickets); // đảm bảo EventDetailDTO có field `tickets`
 
         return dto;
     }

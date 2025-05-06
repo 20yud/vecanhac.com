@@ -1,7 +1,7 @@
 package com.vecanhac.ddd.application.service.event;
 
-import com.vecanhac.ddd.application.dto.EventDetailDTO;
-import com.vecanhac.ddd.application.dto.EventResponseDTO;
+import com.vecanhac.ddd.application.dto.event.EventDetailDTO;
+import com.vecanhac.ddd.application.dto.event.EventResponseDTO;
 import com.vecanhac.ddd.application.dto.search.EventSearchCriteria;
 import com.vecanhac.ddd.application.dto.search.EventSearchResponseDTO;
 import com.vecanhac.ddd.domain.event.EventEntity;

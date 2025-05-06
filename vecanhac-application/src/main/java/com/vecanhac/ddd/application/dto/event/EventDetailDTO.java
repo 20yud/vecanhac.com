@@ -1,8 +1,10 @@
-package com.vecanhac.ddd.application.dto;
+package com.vecanhac.ddd.application.dto.event;
 
+import com.vecanhac.ddd.application.dto.ticket.TicketDTO;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class EventDetailDTO {
@@ -16,4 +18,6 @@ public class EventDetailDTO {
     private String venue;
     private Double minTicketPrice;
     private String andress;
+
+    private List<TicketDTO> tickets; // 👈 Thêm dòng này
 }
