@@ -12,7 +12,9 @@ public class EventDetailDTO {
     private String title;
     private String description;
     private String slug;
+    private String orgName;
     private String coverImageUrl;
+    private String orgImageUrl;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private String venue;

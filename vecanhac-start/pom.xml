@@ -23,6 +23,13 @@
             <artifactId>vecanhac-controller</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.vecanhac</groupId>
+            <artifactId>vecanhac-infrastructure</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
     </dependencies>
 
 

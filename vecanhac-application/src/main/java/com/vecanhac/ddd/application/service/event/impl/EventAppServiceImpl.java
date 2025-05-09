@@ -89,6 +89,8 @@ public class EventAppServiceImpl implements EventAppService {
         dto.setEndTime(event.getEndTime());
         dto.setVenue(event.getVenue());
         dto.setAndress(event.getAddress());
+        dto.setOrgName(event.getOrganizerName());
+        dto.setOrgImageUrl(event.getOrganizerLogoUrl());
 
         var minPrice = ticketRepository.findMinPriceByEventId(id);
         dto.setMinTicketPrice(minPrice != null ? minPrice.doubleValue() : null);

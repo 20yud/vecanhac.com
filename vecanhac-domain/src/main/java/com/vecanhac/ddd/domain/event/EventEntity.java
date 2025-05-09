@@ -32,6 +32,10 @@ public class EventEntity {
 
     private String coverImageUrl;
 
+    private String organizerName;
+
+    private String organizerLogoUrl;
+
     private LocalDateTime startTime;
 
     private LocalDateTime endTime;
