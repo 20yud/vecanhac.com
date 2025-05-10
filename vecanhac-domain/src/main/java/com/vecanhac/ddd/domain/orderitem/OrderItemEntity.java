@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "order_items")
@@ -33,4 +34,16 @@ public class OrderItemEntity {
 
     @Column(name = "price_each", nullable = false)
     private BigDecimal priceEach;
+
+    @Column(name = "order_item_code", nullable = false, unique = true)
+    private String orderItemCode;
+
+    @Column(name = "qr_code_url")
+    private String qrCodeUrl;
+
+    @Column(name = "is_used", nullable = false)
+    private Boolean isUsed = false;
+
+    @Column(name = "used_at")
+    private LocalDateTime usedAt;
 }

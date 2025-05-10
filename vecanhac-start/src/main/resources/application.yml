@@ -21,7 +21,7 @@ spring:
     host: smtp.gmail.com
     port: 587
     username: blackjavk12@gmail.com
-    password: iacjrsurlzrhebaa # <- là mật khẩu ứng dụng 16 ký tự
+    password: ldczyiowrlspeezq # <- là mật khẩu ứng dụng 16 ký tự
     default-encoding: UTF-8
     properties:
       mail:

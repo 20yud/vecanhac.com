@@ -10,6 +10,7 @@ import com.vecanhac.ddd.application.exception.OtpInvalidException;
 import com.vecanhac.ddd.application.exception.UserNotFoundException;
 import com.vecanhac.ddd.application.service.auth.AuthAppService;
 import com.vecanhac.ddd.application.service.email.EmailService;
+import com.vecanhac.ddd.domain.model.enums.UserRole;
 import com.vecanhac.ddd.domain.token.TokenProvider;
 import com.vecanhac.ddd.domain.model.enums.OtpType;
 import com.vecanhac.ddd.domain.otp.OtpCodeEntity;
@@ -47,7 +48,7 @@ public class AuthAppServiceImpl implements AuthAppService {
 
         String token = tokenProvider.generateToken(user.getEmail());
 
-        return new LoginResponseDTO(token, user.getFullName(), user.getEmail(), user.getRole());
+        return new LoginResponseDTO(token, user.getFullName(), user.getEmail(), user.getRole().name());
     }
 
     @Override
@@ -60,7 +61,7 @@ public class AuthAppServiceImpl implements AuthAppService {
         UserEntity user = new UserEntity();
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setRole("USER");
+        user.setRole(UserRole.USER);
         user.setFullName("Người dùng mới");
         user.setPhoneNumber(randomPhone);
         user.setCreatedAt(LocalDateTime.now());
@@ -131,5 +132,7 @@ public class AuthAppServiceImpl implements AuthAppService {
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
+
+
 
 }

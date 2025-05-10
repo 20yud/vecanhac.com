@@ -1,11 +1,12 @@
-package com.vecanhac.ddd.infrastructure.security;
+package com.vecanhac.ddd.domain.security;
 
+import com.vecanhac.ddd.domain.model.enums.UserRole;
 import lombok.*;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
 
 @Getter
 @RequiredArgsConstructor
@@ -14,14 +15,19 @@ public class UserPrincipal implements UserDetails {
     private final Long id;
     private final String email;
     private final String password;
+    private final String fullName;
+    private final UserRole role;
 
-    @Override public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.emptyList();
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(() -> "ROLE_" + role.name());
     }
 
-    @Override public String getUsername() {
-        return email;
+    public String getRole() {
+        return role.name();
     }
+
+    @Override public String getUsername() { return email; }
 
     @Override public boolean isAccountNonExpired() { return true; }
 

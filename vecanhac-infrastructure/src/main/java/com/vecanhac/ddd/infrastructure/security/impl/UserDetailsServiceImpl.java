@@ -2,7 +2,7 @@ package com.vecanhac.ddd.infrastructure.security.impl;
 
 import com.vecanhac.ddd.domain.user.UserEntity;
 import com.vecanhac.ddd.domain.user.UserRepository;
-import com.vecanhac.ddd.infrastructure.security.UserPrincipal;
+import com.vecanhac.ddd.domain.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
@@ -18,6 +18,12 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
-        return new UserPrincipal(user.getId(), user.getEmail(), user.getPasswordHash());
+        return new UserPrincipal(
+                user.getId(),
+                user.getEmail(),
+                user.getPasswordHash(),
+                user.getFullName(),
+                user.getRole()
+        );
     }
 }

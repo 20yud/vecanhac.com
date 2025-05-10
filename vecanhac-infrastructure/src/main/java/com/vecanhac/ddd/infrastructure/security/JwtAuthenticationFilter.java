@@ -28,22 +28,43 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        final String authHeader = request.getHeader("Authorization");
+        String token = null;
 
+        // 1️⃣ Ưu tiên lấy từ header Authorization
+        String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            final String token = authHeader.substring(7);
-            final String email = jwtTokenUtil.getEmailFromToken(token);
-            log.info("Parsed email: {}", email);  // thêm dòng này
-            log.info("Token from request: {}", token);
-            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+            token = authHeader.substring(7);
+        }
 
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities()
-                );
+        // 2️⃣ Nếu không có thì fallback sang cookie
+        if (token == null && request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("token".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
 
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+        // 3️⃣ Nếu có token thì giải mã và set vào SecurityContext
+        if (token != null) {
+            try {
+                final String email = jwtTokenUtil.getEmailFromToken(token);
+                log.info("Parsed email: {}", email);
+                log.info("Token from request: {}", token);
+
+                if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities()
+                    );
+
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
+            } catch (Exception e) {
+                log.error("JWT filter error: {}", e.getMessage());
             }
         }
 

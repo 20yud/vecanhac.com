@@ -1,5 +1,6 @@
 package com.vecanhac.ddd.domain.user;
 
+import com.vecanhac.ddd.domain.model.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.DynamicInsert;
@@ -30,8 +31,8 @@ public class UserEntity {
     @Column(nullable = false)
     private String passwordHash;
 
-    @Column(nullable = false)
-    private String role;
+    @Enumerated(EnumType.STRING)
+    private UserRole role;
 
     @Column(name = "is_verified", nullable = false)
     private boolean isVerified = false;
