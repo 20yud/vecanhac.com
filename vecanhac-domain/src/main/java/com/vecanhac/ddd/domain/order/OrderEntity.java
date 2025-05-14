@@ -31,6 +31,12 @@ public class OrderEntity {
     @Column(name = "total_amount", nullable = false)
     private BigDecimal totalAmount;
 
+    @Column(name = "discount_code")
+    private String discountCode;
+
+    @Column(name = "discount_amount")
+    private BigDecimal discountAmount;
+
     @Enumerated(EnumType.STRING) // quan trọng
     @Column(name = "status")
     private OrderStatus status;

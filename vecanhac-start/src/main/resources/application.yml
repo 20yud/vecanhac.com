@@ -29,4 +29,6 @@ spring:
           auth: true
           starttls:
             enable: true
+app:
+  qr-path: uploads/qrcodes/
 

@@ -1,0 +1,8 @@
+Lợi thế trường top +
+có toeic mà project miêu tả hơi chán như cái hotel booking trong
+bussiness rule kiểu j cx có dạng lock phòng khi khách hàng thanh toán
+đúng ko ? Liệt kê ra mình lock kiểu j lock dưới db hay đổi status
+ sau bao nhiêu giây thì scan nếu ko thanh toán thì release room đi ?
+ Rồi đến search redis liệt kê ra caching pattern đã sử dụng vd thêm 1
+ room mới thì search có ra ko? Send email vậy thì có dùng async ko hay
+ phải đợi bên kia response lại, etc... nói chung chung v ai biết mình làm cái j

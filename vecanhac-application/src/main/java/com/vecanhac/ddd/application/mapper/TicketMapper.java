@@ -14,7 +14,7 @@ public class TicketMapper {
         dto.setQuantitySold(entity.getQuantitySold());
         dto.setSaleStart(entity.getSaleStart());
         dto.setSaleEnd(entity.getSaleEnd());
-        dto.setStatus(entity.getStatus());
+        dto.setStatus(entity.getStatus().name());
         return dto;
     }
 }

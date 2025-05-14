@@ -8,6 +8,7 @@ import java.util.List;
 public class CreateOrderRequestDTO {
     private Long userId;
     private List<TicketItem> tickets;
+    private String discountCode;
 
     @Data
     public static class TicketItem {

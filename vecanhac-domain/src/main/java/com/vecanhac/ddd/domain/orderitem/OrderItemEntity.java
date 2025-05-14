@@ -44,6 +44,9 @@ public class OrderItemEntity {
     @Column(name = "is_used", nullable = false)
     private Boolean isUsed = false;
 
+    @Column(name = "is_cancelled")
+    private boolean isCancelled = false;
+
     @Column(name = "used_at")
     private LocalDateTime usedAt;
 }

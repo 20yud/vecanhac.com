@@ -2,6 +2,8 @@ package com.vecanhac.ddd.domain.ticket;
 
 
 import com.vecanhac.ddd.domain.event.EventEntity;
+import com.vecanhac.ddd.domain.model.enums.TicketStatus;
+import com.vecanhac.ddd.domain.model.enums.UserRole;
 import com.vecanhac.ddd.domain.showing.ShowingEntity;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -34,7 +36,8 @@ public class TicketEntity {
 
     private LocalDateTime saleEnd;
 
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private TicketStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "showing_id")

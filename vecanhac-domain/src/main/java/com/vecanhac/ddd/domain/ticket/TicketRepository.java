@@ -25,4 +25,12 @@ public interface TicketRepository extends JpaRepository<TicketEntity, Long> {
     """)
     BigDecimal findMinPriceByEventId(@Param("eventId") Long eventId);
 
+
+    @Query("SELECT t FROM TicketEntity t " +
+            "JOIN t.showing s " +
+            "WHERE s.startTime < CURRENT_TIMESTAMP " +
+            "AND t.status != 'SOLD_OUT' " +
+            "AND (t.quantitySold >= t.quantityTotal OR s.endTime < CURRENT_TIMESTAMP)")
+    List<TicketEntity> findTicketsToMarkAsSoldOut();
+
 }
