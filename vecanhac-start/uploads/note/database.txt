@@ -1,0 +1,20 @@
+✅ Tóm lại: Dùng gì cho dự án của bạn?
+Phần hệ thống	Gợi ý
+Core (orders, tickets, users)	✅ MySQL hoặc PostgreSQL (quan hệ, cần join)
+Redis Lock, Rate limit	✅ Redis (NoSQL key-value)
+Lưu log, tracking, audit	✅ MongoDB / Elasticsearch (NoSQL document)
+Recommendation engine / Social graph	✅ Neo4j (NoSQL graph DB)
+
+🧠 Tổng kết
+Câu hỏi	Trả lời ngắn
+NoSQL là gì?	Cơ sở dữ liệu phi quan hệ (MongoDB, Redis...)
+PostgreSQL là gì?	CSDL quan hệ mạnh như MySQL, nhưng nhiều tính năng hơn
+So với MySQL?	PostgreSQL mạnh hơn khi cần join phức tạp, JSON, giao dịch lớn
+
+Nếu bạn đang xây hệ thống event-ticket lớn như vecanhac.com, mình gợi ý:
+
+🧱 MySQL cho phần core (orders, tickets, users)
+
+⚡ Redis cho lock, cache, rate-limit
+
+📄 Nếu muốn lưu log chi tiết có thể dùng MongoDB hoặc Elasticsearch

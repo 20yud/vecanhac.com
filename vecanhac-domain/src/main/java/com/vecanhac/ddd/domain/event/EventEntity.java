@@ -1,6 +1,7 @@
 package com.vecanhac.ddd.domain.event;
 
 
+import com.vecanhac.ddd.domain.model.enums.EventStatus;
 import com.vecanhac.ddd.domain.ticket.TicketEntity;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -44,7 +45,10 @@ public class EventEntity {
 
     private String address;
 
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private EventStatus status;
+
 
     private LocalDateTime createdAt;
 

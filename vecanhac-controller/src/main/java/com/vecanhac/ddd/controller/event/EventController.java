@@ -7,7 +7,7 @@ import com.vecanhac.ddd.application.dto.search.EventSearchCriteria;
 import com.vecanhac.ddd.application.dto.search.EventSearchResponseDTO;
 import com.vecanhac.ddd.application.service.event.EventAppService;
 import com.vecanhac.ddd.domain.event.EventEntity;
-import com.vecanhac.ddd.domain.event.EventTrendingProjection;
+import com.vecanhac.ddd.domain.projection.EventTrendingProjection;
 import com.vecanhac.ddd.domain.ticket.TicketRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;

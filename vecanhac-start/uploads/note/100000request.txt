@@ -1,0 +1,77 @@
+✅ Dữ liệu mình biết từ lịch sử chat
+Dự án vecanhac.com của bạn có các đặc điểm sau:
+
+Yếu tố	Thông tin từ lịch sử
+🧱 Backend	Spring Boot, cấu trúc DDD 4 module (start, application, domain, infrastructure)
+🔐 Auth	JWT lưu trong cookie, @Controller REST
+🧠 DB	MySQL với schema chuẩn 12 bảng: users, orders, tickets, payments,...
+🚀 Checkout	Tạo order khi user nhấn thanh toán → trạng thái PENDING → xử lý sau
+💰 Thanh toán	Qua VNPAY, có xử lý callback / webhook
+🧠 Redis	Dự định dùng Redis để lock vé theo TTL 15 phút
+📩 Email	Hướng tới dùng async qua @Async hoặc Queue
+🧹 Scheduled	Có @Scheduled job để cleanup order hết hạn
+🖥️ Frontend	Next.js với Tailwind CSS, fetch qua API
+
+🔥 Phân tích khả năng chịu tải: 100.000 request cùng lúc
+💡 Trường hợp: khi mở bán vé concert Sơn Tùng hay BlackPink, 100.000 người vào trong 5–10 giây đầu tiên
+
+1. ⚠️ Những rào cản hiện tại trong dự án của bạn
+Rào cản	Giải thích
+❌ MySQL là bottleneck	100.000 truy vấn ghi (insert order, update tickets) cùng lúc → rất dễ nghẽn, gây deadlock
+❌ Chưa có load balancer / service scale	Spring Boot app chưa deploy nhiều instance / container
+❌ Redis chưa triển khai thật sự	Mới lên flow Redis Lock nhưng chưa có lock thực sự hoặc Redis Cluster
+❌ Không có rate-limit	Người dùng/đối thủ có thể spam liên tục
+❌ Không có queue xử lý async (Kafka/RabbitMQ)	Việc insert DB, gửi email, cập nhật không được phân tán, dễ nghẽn I/O
+❌ FE chưa có throttle / debounce / kiểm soát hành vi người dùng	Dễ sinh ra nhiều request trùng lặp
+
+2. ✅ Những điểm mạnh giúp bạn scale
+Điểm mạnh	Chi tiết
+✅ Có Redis design sẵn cho Lock vé	Nếu dùng tốt Redis Lock + TTL, sẽ giảm áp lực DB
+✅ Có thiết kế phân lớp rõ (DDD)	Dễ scale từng module như ticket, order, payment
+✅ Đã tách các action (tạo order, thanh toán, cancel) theo trạng thái	Giảm tính “tức thời” và tăng khả năng batch xử lý
+
+📊 Đánh giá thực tế
+Mức tải	Dự án hiện tại chịu được?
+1.000 user truy cập cùng lúc	✅ Có thể chịu được nếu Redis Lock hoạt động
+10.000 user truy cập cùng lúc	⚠️ Cần test lại với real Redis, tối ưu DB connection
+100.000 user cùng lúc	❌ Chưa chịu nổi nếu không có: Redis cluster, load balancer, rate-limit, async queue, cache warmup, DB tuning
+
+🧱 Để hệ thống chịu được 100.000 request/s, bạn cần:
+✅ 1. Redis Lock + TTL chuẩn
+Lock vé theo ticketId:userId
+
+TTL 15 phút
+
+Chống race condition tốt
+
+✅ 2. Queue xử lý async (RabbitMQ, Kafka)
+Khi submit order → đưa vào queue → worker xử lý tạo order & DB
+
+Không blocking request
+
+✅ 3. Rate limiting per IP/user
+Dùng Redis + filter để giới hạn 5–10 req/s/user
+
+✅ 4. Load balancer + horizontal scaling
+Nhiều instance Spring Boot (Kubernetes / Docker)
+
+Frontend Next.js build static, deploy CDN (Vercel)
+
+✅ 5. Preload cache và cache-aside strategy
+Cache homepage, danh sách ticket, seat map...
+
+Redis TTL cache 60–300s
+
+✅ 6. DB connection pool tuning
+HikariCP config max pool size, timeout
+
+Index chuẩn trên event_id, ticket_id, user_id
+
+✅ 7. Monitoring & Alert
+Dùng Prometheus + Grafana để theo dõi response time, số lượng kết nối, error rate
+
+📌 Kết luận
+Câu hỏi	Trả lời
+Hiện tại hệ thống chịu được 100.000 request/s không?	❌ Chưa
+Có thể nâng cấp để đạt được không?	✅ Hoàn toàn được, nếu áp dụng Redis Lock + Queue + Scaling hợp lý
+Mình có hỗ trợ được bạn làm những bước đó không?	✅ 100%. Mình có thể gửi ngay file cấu hình Redis Lock, queue async, scale-out Spring Boot, hoặc test JMeter/Gatling cho stress test

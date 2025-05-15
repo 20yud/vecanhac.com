@@ -1,4 +1,4 @@
-package com.vecanhac.ddd.domain.event;
+package com.vecanhac.ddd.domain.projection;
 
 import java.math.BigDecimal;
 

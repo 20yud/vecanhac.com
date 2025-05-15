@@ -1,0 +1,107 @@
+
+bussiness rule kiểu j cx có dạng lock ticket khi khách hàng thanh toán
+đúng ko ? Liệt kê ra mình lock kiểu j lock dưới db hay đổi status
+ sau bao nhiêu giây thì scan nếu ko thanh toán thì release ticket đi ?
+ Rồi đến search redis liệt kê ra caching pattern đã sử dụng vd thêm 1
+ ticket mới thì search có ra ko? Send email vậy thì có dùng async ko hay
+ phải đợi bên kia response lại, etc...
+
+ 🔐 1. Lock ticket khi user thanh toán
+ ❓ Vì sao cần lock?
+ Tránh oversell (bán nhiều hơn số lượng vé thực tế)
+
+ Tránh race condition khi nhiều người cùng chọn 1 vé
+
+ Bảo vệ trải nghiệm: khi user click thanh toán, đảm bảo họ không bị “hết vé” giữa chừng
+
+ ✅ Các phương pháp lock vé
+ Phương pháp	Mô tả	Ưu điểm	Nhược điểm
+ 1. Lock bằng DB (tạm thời giảm quantity_sold)	Ngay khi tạo order, cộng quantity_sold và lưu order.status = PENDING	Đơn giản, dễ triển khai	Cần scheduler để release vé sau timeout
+ 2. Lock bằng status (VD: ticket.status = HOLD)	Gắn trạng thái HOLD vào vé, hoặc tạo bảng ticket_holds để track tạm thời	Rõ ràng, tách biệt business logic	Cần batch cleanup + dễ conflict nếu nhiều người giữ 1 loại vé
+ 3. Lock bằng Redis	Dùng Redis lock hoặc TTL (setex key:ticket_id userId 15m) để giữ quyền đặt vé	Nhanh, ít ảnh hưởng DB	Cần đồng bộ khi Redis mất kết nối
+ 4. Lock bằng order_items tạm thời	Tạo order_items với order.status = PENDING, tạm giữ vé theo số lượng	Gần giống phương án 1 nhưng dễ tracking	Cần xử lý rollback nếu huỷ
+
+🎯 Tổng kết Redis Lock Flow
+pgsql
+Copy
+Edit
+[User chọn vé]
+   ⬇️
+[POST /checkout]
+   ⬇️
+Redis SET key: lock:ticket:{id}:user:{uid} EX 900 NX
+   ⬇️
+Tạo order status = PENDING
+   ⬇️
+Redirect đến VNPAY
+   ⬇️
+Webhook trả về → kiểm tra Redis key còn không?
+   ⬇️
+Nếu CÓ: SUCCESS + cập nhật DB + del key
+Nếu KHÔNG: CANCEL đơn
+
+ 🔁 Sau 15 phút, nếu user không thanh toán:
+
+ Update order.status = CANCELLED
+
+ Trả lại vé: tickets.quantity_sold -= x
+
+ (Redis: xoá key hold hoặc unlock)
+
+ 🧠 2. Scan/check đơn chưa thanh toán – khi nào thì release vé
+ Dùng ScheduledJob (Spring @Scheduled) hoặc cron job 5 phút/lần:
+
+ sql
+ Copy
+ Edit
+ UPDATE orders
+ SET status = 'CANCELLED'
+ WHERE status = 'PENDING'
+   AND created_at < NOW() - INTERVAL 15 MINUTE;
+ Tùy logic vé giữ ở đâu, rollback lại:
+
+ quantity_sold
+
+ ticket_hold table
+
+ Redis key
+
+ ⚡ 3. Caching Pattern khi search tickets/events
+ ❓ Khi search, dữ liệu cache từ đâu? Khi nào invalidate?
+ Tình huống	Caching Pattern	Ghi chú
+ Search sự kiện theo từ khóa	🔍 Read-through cache	FE gọi /search?query=roinước → tìm trong Redis, không có thì lấy từ DB rồi cache
+ Load homepage	🔃 Write-through (cache khi tạo mới)	Khi tạo event mới → update cả Redis + DB
+ Chi tiết sự kiện (event detail)	⚡ Cache-aside	FE gọi /events/:slug, cache 15 phút
+ Danh sách vé của 1 sự kiện/showing	⚡ Cache-aside hoặc preload theo showingId
+
+ ❌ Nếu thêm vé mới mà không update lại Redis → search không thấy.
+ ✅ Phải invalidate cache hoặc dùng cache layer có TTL (Time To Live) để refresh.
+
+ 📧 4. Send Email – Có cần async không?
+ Cách làm	Ưu điểm	Nhược điểm
+ Gửi trực tiếp khi tạo order	Dễ làm	Blocking → chậm API → dễ timeout
+ ✅ Gửi async qua Queue (RabbitMQ, Kafka, hoặc @Async)	Không chặn thread
+ Dễ retry
+ Quản lý thất bại tốt	Cần setup thêm queue hoặc thread pool
+
+ Gợi ý dùng Spring Boot:
+ Gửi email qua @Async hoặc RabbitMQ:
+
+ java
+ Copy
+ Edit
+ @Async
+ public void sendTicketEmail(Order order) {
+    emailService.send(order.getUserEmail(), buildHtmlTicket(order));
+ }
+ Hoặc producer gửi EmailJob vào queue → có 1 email-consumer xử lý riêng
+
+ 📦 Tóm tắt chuẩn hóa production-flow cho checkout + ticketing
+ Bước	Thao tác	Công nghệ
+ 1️⃣ User chọn vé	Lưu tạm vào local hoặc session	FE
+ 2️⃣ Submit thanh toán	Tạo order + order_items, quantity_sold++, status = PENDING	DB + Lock
+ 3️⃣ Redirect thanh toán (VNPAY)	—	FE
+ 4️⃣ Webhook/callback hoặc redirect	Update order.status = PAID/SUCCESS	Backend
+ 5️⃣ Scheduler mỗi 5 phút	Huỷ đơn PENDING quá 15 phút → quantity_sold--	Cron + SQL
+ 6️⃣ Gửi email	Gửi async qua queue hoặc thread	@Async / Kafka / RabbitMQ
+ 7️⃣ Cache search & homepage	Cache-aside / read-through	Redis, TTL, Invalidate khi tạo mới

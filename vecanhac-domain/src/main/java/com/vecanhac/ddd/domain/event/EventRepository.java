@@ -1,11 +1,13 @@
 package com.vecanhac.ddd.domain.event;
 
+import com.vecanhac.ddd.domain.model.enums.EventStatus;
+import com.vecanhac.ddd.domain.projection.EventTrendingProjection;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface EventRepository extends JpaRepository<EventEntity, Long>, EventRepositoryCustom {
     // Tự thêm cái đặc biệt nếu muốn
@@ -27,4 +29,11 @@ public interface EventRepository extends JpaRepository<EventEntity, Long>, Event
     ORDER BY SUM(t.quantitySold) DESC
 """)
     List<EventTrendingProjection> findTrendingEvents(Pageable pageable);
+
+    List<EventEntity> findByStatus(EventStatus status);
+
+    Page<EventEntity> findByStatus(EventStatus status, Pageable pageable);
+
+    boolean existsBySlug(String slug); // ✅ Trả về boolean
+
 }

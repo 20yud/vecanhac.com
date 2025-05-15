@@ -1,0 +1,66 @@
+🧱 Tiếp tục liệt kê các rào cản và lỗ hổng còn lại
+Rào cản / Rủi ro	Giải thích
+❌ Chưa có Redis cluster / fallback	Nếu Redis crash, toàn bộ flow lock vé và cache sẽ mất → oversell
+❌ Không có circuit breaker (Hystrix/Resilience4j)	Khi 1 service như VNPAY hoặc DB chậm → kéo chết toàn hệ thống
+❌ Không có centralized logging (ELK/Grafana)	Khó truy vết lỗi trong production, không phát hiện được vụ tấn công DDOS/log spam
+❌ Không có API Gateway / bảo vệ route nội bộ	Hacker có thể gọi thẳng các route admin/backend nếu không config tốt
+❌ Chưa chuẩn hóa phân quyền (Role: USER vs ORG vs ADMIN)	Người dùng có thể sửa dữ liệu không thuộc về họ nếu thiếu guard ở backend
+❌ Không giới hạn hành vi bất thường (rate-limit / captcha)	Hacker có thể spam: đăng ký OTP/email, tạo order, brute-force
+❌ Không có validation kỹ ở BE	Dữ liệu sai, hoặc cố tình POST vé ticketId không hợp lệ → vẫn tạo order
+❌ Không có stress test / CI pipeline test hiệu năng	Không đo được hiệu năng thật sự của các route checkout, search, register
+❌ Không có backup DB định kỳ / cluster DB	Mất server = mất toàn bộ dữ liệu đơn hàng, vé, người dùng
+
+🎯 Hướng đi tiếp theo để biến vecanhac.com thành production-ready
+✅ Giai đoạn 1 – Chống nghẽn / đảm bảo hiệu năng
+Việc cần làm	Giải pháp cụ thể
+Redis Lock	Cài Redis thực tế, test với 1000 user lock cùng lúc
+Load test	Dùng JMeter / k6.io để test API /checkout với 500–1000 rps
+Queue	Cài RabbitMQ hoặc dùng Spring @Async để gửi email, xử lý order hậu thanh toán
+Rate Limit	Dùng Redis + Filter để chặn IP gửi quá 10 req/s
+Caching hợp lý	Cache event/showing detail, ticket list → invalidate khi update
+
+✅ Giai đoạn 2 – Chống spam, bảo mật
+Việc cần làm	Giải pháp
+Xác thực 2 lớp / Token OTP	Thêm captcha hoặc xác thực 2 bước khi spam nhiều
+Hide route nội bộ	Dùng API Gateway hoặc đặt route /admin/* sau xác thực
+Phân quyền chuẩn	Dùng @PreAuthorize hoặc custom interceptor cho USER / ORG / ADMIN
+Hash sensitive data	Mã hoá email, phoneNumber trong Redis nếu cần bảo mật
+Log audit	Ghi log ai tạo order nào, dùng mã gì, IP gì để trace nếu bị kiện
+
+✅ Giai đoạn 3 – Khả năng mở rộng & resilience
+Việc cần làm	Giải pháp
+Load balancer	NGINX / Traefik / AWS ELB đứng trước Spring App
+DB Replication	MySQL Master-Slave (Read-Write splitting)
+Redis Cluster	Triển khai Redis Sentinel hoặc Cluster mode
+Backup DB	Dump định kỳ hàng ngày, lưu lên cloud
+Retry policy	Dùng Resilience4j để retry khi gọi VNPAY thất bại 1-2 lần trước khi báo lỗi
+
+✅ Giai đoạn 4 – Security Test & Attack Simulation
+Test case giả lập	Phản ứng nên có
+DDOS 10.000 req/s	Chặn IP, rate-limit, throttle BE, Cloudflare
+Spam OTP/email	Limit OTP/email per IP, captcha sau 3 lần
+Brute-force login	Lock account sau 5 lần sai
+Fake thanh toán	So sánh transaction_code qua VNPAY callback chính chủ
+SQL injection / API bypass	Validate toàn bộ input + dùng @Valid, sanitize
+Cướp vé bằng postman	Kiểm tra quyền sở hữu vé qua userId + JWT
+
+🧠 Tổng kết định hướng
+Mục tiêu	Việc nên làm
+🔒 Chống oversell	Redis Lock + TTL
+🧠 Chống spam	Rate-limit, Captcha, phân quyền chặt
+⚡ Chịu tải lớn	Queue, cache, Redis, Load balancer
+🔐 Bảo mật	Gateway, phân quyền, logging, retry
+📈 Giám sát	Prometheus, Grafana, Alert
+🔁 Test hiệu năng	JMeter, k6, Gatling
+🧼 Tránh rác	Scheduler huỷ đơn timeout, xóa cache expired
+
+Nếu bạn cần:
+
+Tài liệu Production-readiness checklist
+
+Docker Compose Redis Cluster
+
+Kịch bản JMeter test checkout API
+
+Rate-limiter Redis bằng Spring Boot filter
+→ Mình có thể gửi ngay!

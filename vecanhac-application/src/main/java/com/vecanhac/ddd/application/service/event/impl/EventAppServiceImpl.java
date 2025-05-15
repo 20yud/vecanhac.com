@@ -1,22 +1,37 @@
 package com.vecanhac.ddd.application.service.event.impl;
 
+import com.vecanhac.ddd.application.dto.event.CreateEventRequestDTO;
 import com.vecanhac.ddd.application.dto.event.EventDetailDTO;
 import com.vecanhac.ddd.application.dto.event.EventResponseDTO;
 import com.vecanhac.ddd.application.dto.search.EventSearchCriteria;
 import com.vecanhac.ddd.application.dto.search.EventSearchResponseDTO;
+import com.vecanhac.ddd.application.dto.showing.CreateShowingDTO;
+import com.vecanhac.ddd.application.dto.ticket.CreateTicketDTO;
+import com.vecanhac.ddd.application.exception.BadRequestException;
 import com.vecanhac.ddd.application.mapper.TicketMapper;
 import com.vecanhac.ddd.application.service.event.EventAppService;
+import com.vecanhac.ddd.application.service.ticket.impl.TicketAppServiceImpl;
 import com.vecanhac.ddd.domain.event.EventEntity;
 import com.vecanhac.ddd.domain.event.EventRepository;
 import com.vecanhac.ddd.domain.event.EventSearchFilter;
-import com.vecanhac.ddd.domain.event.EventTrendingProjection;
+import com.vecanhac.ddd.domain.projection.EventTrendingProjection;
+import com.vecanhac.ddd.domain.model.enums.EventStatus;
+import com.vecanhac.ddd.domain.model.enums.TicketStatus;
+import com.vecanhac.ddd.domain.showing.ShowingEntity;
+import com.vecanhac.ddd.domain.showing.ShowingRepository;
+import com.vecanhac.ddd.domain.ticket.TicketEntity;
 import com.vecanhac.ddd.domain.ticket.TicketRepository;
+import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import org.springframework.data.domain.Pageable;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,17 +44,24 @@ public class EventAppServiceImpl implements EventAppService {
     @Autowired
     private TicketRepository ticketRepository;
 
+    @Autowired
+    private ShowingRepository showingRepository;
+
+    private static final Logger log = LoggerFactory.getLogger(EventAppServiceImpl.class);
+
+
     @Override
     public List<EventResponseDTO> getAllEvents() {
-        List<EventEntity> events = eventRepository.findAll();
+        List<EventEntity> events = eventRepository.findByStatus(EventStatus.PUBLISHED);
         return mapToResponseDTOs(events);
     }
 
     @Override
     public Page<EventResponseDTO> findAllEvents(Pageable pageable) {
-        Page<EventEntity> events = eventRepository.findAll(pageable);
+        Page<EventEntity> events = eventRepository.findByStatus(EventStatus.PUBLISHED, pageable);
         return events.map(this::mapToResponseDTO);
     }
+
 
     @Override
     public Optional<EventEntity> getEventBySlug(String slug) {
@@ -136,5 +158,62 @@ public class EventAppServiceImpl implements EventAppService {
         }
         return dto;
     }
+
+    @Transactional
+    @Override
+    public EventResponseDTO createEvent(CreateEventRequestDTO request) {
+        EventEntity event = new EventEntity();
+        event.setTitle(request.getTitle());
+        if (eventRepository.existsBySlug(request.getSlug())) {
+            throw new BadRequestException("Slug đã tồn tại.");
+        }
+        event.setSlug(request.getSlug());
+        event.setDescription(request.getDescription());
+        event.setCoverImageUrl(request.getCoverImageUrl());
+        event.setOrganizerName(request.getOrganizerName());
+        event.setOrganizerLogoUrl(request.getOrganizerLogoUrl());
+        event.setStartTime(request.getStartTime());
+        event.setEndTime(request.getEndTime());
+        event.setVenue(request.getVenue());
+        event.setAddress(request.getAddress());
+        event.setLocationId(request.getLocationId());
+        event.setCreatedAt(LocalDateTime.now());
+        event.setStatus(EventStatus.PENDING);
+        event.setOrganizerId(request.getOrganizerId()); // 👈 Đã gán từ controller: user.getId()
+
+        EventEntity savedEvent = eventRepository.save(event);
+
+        for (CreateShowingDTO showingReq : request.getShowings()) {
+            ShowingEntity showing = new ShowingEntity();
+            showing.setEvent(savedEvent);
+            showing.setStartTime(showingReq.getStartTime());
+            showing.setEndTime(showingReq.getEndTime());
+            showing.setSeatMapId(showingReq.getSeatMapId());
+            showing.setIsEnabledQueue(showingReq.getIsEnabledQueue() != null && showingReq.getIsEnabledQueue());
+
+            ShowingEntity savedShowing = showingRepository.save(showing);
+
+            for (CreateTicketDTO ticketReq : showingReq.getTickets()) {
+                TicketEntity ticket = new TicketEntity();
+                ticket.setShowing(savedShowing);
+                ticket.setName(ticketReq.getName());
+                ticket.setPrice(ticketReq.getPrice());
+                ticket.setOriginalPrice(ticketReq.getOriginalPrice());
+                ticket.setQuantityTotal(ticketReq.getQuantityTotal());
+                ticket.setQuantitySold(0);
+                ticket.setSaleStart(ticketReq.getSaleStart());
+                ticket.setSaleEnd(ticketReq.getSaleEnd());
+                ticket.setColor(ticketReq.getColor());
+                ticket.setImageUrl(ticketReq.getImageUrl());
+                ticket.setStatus(TicketStatus.AVAILABLE);
+
+                ticketRepository.save(ticket);
+            }
+        }
+        log.info("Creating event by user {}: {}", request.getOrganizerId(), request.getTitle());
+
+        return mapToResponseDTO(savedEvent);
+    }
+
 
 }
