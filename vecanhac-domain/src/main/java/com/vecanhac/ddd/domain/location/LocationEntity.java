@@ -15,13 +15,5 @@ public class LocationEntity {
     @Column(nullable = false)
     private String city;
 
-    @Column(name = "venue_name", nullable = false)
-    private String venueName;
-
-    @Column(nullable = false, length = 500)
-    private String address;
-
-    private Float lat;
-
-    private Float lng;
+    private Long phoneCode;
 }

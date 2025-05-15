@@ -3,17 +3,22 @@ package com.vecanhac.ddd.application.service.event.impl;
 import com.vecanhac.ddd.application.dto.event.CreateEventRequestDTO;
 import com.vecanhac.ddd.application.dto.event.EventDetailDTO;
 import com.vecanhac.ddd.application.dto.event.EventResponseDTO;
+import com.vecanhac.ddd.application.dto.event.MyEventSearchCriteria;
 import com.vecanhac.ddd.application.dto.search.EventSearchCriteria;
 import com.vecanhac.ddd.application.dto.search.EventSearchResponseDTO;
 import com.vecanhac.ddd.application.dto.showing.CreateShowingDTO;
 import com.vecanhac.ddd.application.dto.ticket.CreateTicketDTO;
 import com.vecanhac.ddd.application.exception.BadRequestException;
+import com.vecanhac.ddd.application.helper.SlugUtil;
+import com.vecanhac.ddd.application.mapper.EventMapper;
 import com.vecanhac.ddd.application.mapper.TicketMapper;
 import com.vecanhac.ddd.application.service.event.EventAppService;
 import com.vecanhac.ddd.application.service.ticket.impl.TicketAppServiceImpl;
 import com.vecanhac.ddd.domain.event.EventEntity;
 import com.vecanhac.ddd.domain.event.EventRepository;
 import com.vecanhac.ddd.domain.event.EventSearchFilter;
+import com.vecanhac.ddd.domain.event.MyEventRepository;
+import com.vecanhac.ddd.domain.event.myevents.MyEventSearchFilter;
 import com.vecanhac.ddd.domain.projection.EventTrendingProjection;
 import com.vecanhac.ddd.domain.model.enums.EventStatus;
 import com.vecanhac.ddd.domain.model.enums.TicketStatus;
@@ -29,11 +34,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+
 import org.springframework.data.domain.Pageable;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -49,6 +57,11 @@ public class EventAppServiceImpl implements EventAppService {
 
     private static final Logger log = LoggerFactory.getLogger(EventAppServiceImpl.class);
 
+    @Autowired
+    private MyEventRepository myEventRepository;
+
+    @Autowired
+    private EventMapper eventMapper;
 
     @Override
     public List<EventResponseDTO> getAllEvents() {
@@ -162,12 +175,25 @@ public class EventAppServiceImpl implements EventAppService {
     @Transactional
     @Override
     public EventResponseDTO createEvent(CreateEventRequestDTO request) {
+
+
+
         EventEntity event = new EventEntity();
         event.setTitle(request.getTitle());
         if (eventRepository.existsBySlug(request.getSlug())) {
             throw new BadRequestException("Slug đã tồn tại.");
         }
-        event.setSlug(request.getSlug());
+        String baseSlug = SlugUtil.slugify(request.getTitle());
+        String uniqueSlug = baseSlug;
+        int suffix = 1;
+
+        while (eventRepository.existsBySlug(uniqueSlug)) {
+            uniqueSlug = baseSlug + "-" + suffix;
+            suffix++;
+        }
+
+        event.setSlug(uniqueSlug);
+
         event.setDescription(request.getDescription());
         event.setCoverImageUrl(request.getCoverImageUrl());
         event.setOrganizerName(request.getOrganizerName());
@@ -213,6 +239,38 @@ public class EventAppServiceImpl implements EventAppService {
         log.info("Creating event by user {}: {}", request.getOrganizerId(), request.getTitle());
 
         return mapToResponseDTO(savedEvent);
+    }
+
+    @Override
+    public List<EventResponseDTO> getMyEvents(Long organizerId, MyEventSearchCriteria criteria) {
+        EventStatus status = null;
+
+        if (StringUtils.hasText(criteria.getStatus())) {
+            try {
+                status = EventStatus.valueOf(criteria.getStatus().toUpperCase());
+            } catch (IllegalArgumentException ex) {
+                log.warn("Giá trị status không hợp lệ: {}", criteria.getStatus());
+            }
+        }
+
+        Boolean upcoming = null;
+        if ("upcoming".equalsIgnoreCase(criteria.getTime())) {
+            upcoming = true;
+        } else if ("past".equalsIgnoreCase(criteria.getTime())) {
+            upcoming = false;
+        }
+
+        MyEventSearchFilter filter = MyEventSearchFilter.builder()
+                .organizerId(organizerId)
+                .keyword(criteria.getKeyword())
+                .status(status)
+                .upcoming(upcoming)
+                .build();
+
+        List<EventEntity> events = myEventRepository.searchMyEvents(filter);
+        return events.stream()
+                .map(eventMapper::toEventResponseDTO)
+                .collect(Collectors.toList());
     }
 
 

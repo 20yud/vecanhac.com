@@ -3,6 +3,7 @@ package com.vecanhac.ddd.application.service.event;
 import com.vecanhac.ddd.application.dto.event.CreateEventRequestDTO;
 import com.vecanhac.ddd.application.dto.event.EventDetailDTO;
 import com.vecanhac.ddd.application.dto.event.EventResponseDTO;
+import com.vecanhac.ddd.application.dto.event.MyEventSearchCriteria;
 import com.vecanhac.ddd.application.dto.search.EventSearchCriteria;
 import com.vecanhac.ddd.application.dto.search.EventSearchResponseDTO;
 import com.vecanhac.ddd.domain.event.EventEntity;
@@ -21,6 +22,7 @@ public interface EventAppService {
     EventDetailDTO getEventDetail(Long id);
     List<EventSearchResponseDTO> searchEvents(EventSearchCriteria criteria, Pageable pageable);
     EventResponseDTO createEvent(CreateEventRequestDTO request);
+    List<EventResponseDTO> getMyEvents(Long organizerId, MyEventSearchCriteria criteria);
 
 
 }
