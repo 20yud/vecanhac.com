@@ -1,5 +1,6 @@
 package com.vecanhac.ddd.application.dto.event;
 
+import com.vecanhac.ddd.application.dto.showing.ShowingDTO;
 import com.vecanhac.ddd.application.dto.ticket.TicketDTO;
 import lombok.Data;
 
@@ -21,5 +22,6 @@ public class EventDetailDTO {
     private Double minTicketPrice;
     private String andress;
 
+    private List<ShowingDTO> showings;
     private List<TicketDTO> tickets; // 👈 Thêm dòng này
 }

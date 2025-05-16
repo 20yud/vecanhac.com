@@ -1,15 +1,17 @@
 package com.vecanhac.ddd.controller.event.organizer;
 
-import com.vecanhac.ddd.application.dto.event.CreateEventRequestDTO;
+import com.vecanhac.ddd.application.dto.event.EventDetailDTO;
+import com.vecanhac.ddd.application.dto.event.myevents.CreateEventRequestDTO;
+import com.vecanhac.ddd.application.dto.event.myevents.PatchUpdateEventDTO;
+import com.vecanhac.ddd.application.dto.event.myevents.PatchUpdateEventDTO;
 import com.vecanhac.ddd.application.dto.event.EventResponseDTO;
-import com.vecanhac.ddd.application.dto.event.MyEventSearchCriteria;
+import com.vecanhac.ddd.application.dto.event.myevents.MyEventSearchCriteria;
 import com.vecanhac.ddd.application.service.event.EventAppService;
 import com.vecanhac.ddd.domain.security.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +23,15 @@ import java.util.List;
 public class EventOrganizerController {
 
     private final EventAppService eventAppService;
+
+    @GetMapping("/{eventId}")
+    public EventDetailDTO getMyEventDetail(
+            @PathVariable(name = "eventId") Long eventId,
+            @AuthenticationPrincipal UserPrincipal user
+    ) {
+        return eventAppService.getMyEventDetail(eventId, user.getId());
+    }
+
 
     @PostMapping
     public ResponseEntity<EventResponseDTO> createEvent(
@@ -46,6 +57,30 @@ public class EventOrganizerController {
 
         return eventAppService.getMyEvents(user.getId(), criteria);
     }
+
+
+    @PatchMapping("/{eventId}")
+    public ResponseEntity<EventResponseDTO> patchUpdateEvent(
+            @PathVariable Long eventId,
+            @Valid @RequestBody PatchUpdateEventDTO request,
+            @AuthenticationPrincipal UserPrincipal user
+    ) {
+        EventResponseDTO response = eventAppService.patchUpdateEvent(eventId, request, user.getId());
+        return ResponseEntity.ok(response);
+    }
+
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteEvent(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal user
+    ) {
+        eventAppService.deleteEvent(id, user.getId());
+        return ResponseEntity.noContent().build();
+    }
+
+
+
 
 }
 

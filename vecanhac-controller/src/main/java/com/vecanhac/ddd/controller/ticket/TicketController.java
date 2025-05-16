@@ -40,9 +40,6 @@ public class TicketController {
         return ResponseEntity.ok(items);
     }
 
-
-
-
     //Create Order API
     @PostMapping
     public ResponseEntity<Long> createOrder(

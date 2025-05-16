@@ -1,6 +1,7 @@
 package com.vecanhac.ddd.domain.ticket;
 
 
+import com.vecanhac.ddd.domain.showing.ShowingEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -33,4 +34,6 @@ public interface TicketRepository extends JpaRepository<TicketEntity, Long> {
             "AND (t.quantitySold >= t.quantityTotal OR s.endTime < CURRENT_TIMESTAMP)")
     List<TicketEntity> findTicketsToMarkAsSoldOut();
 
+
+    List<TicketEntity> findByShowing(ShowingEntity showing);
 }

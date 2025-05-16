@@ -1,19 +1,23 @@
 package com.vecanhac.ddd.application.service.event.impl;
 
-import com.vecanhac.ddd.application.dto.event.CreateEventRequestDTO;
+import com.vecanhac.ddd.application.dto.event.myevents.CreateEventRequestDTO;
 import com.vecanhac.ddd.application.dto.event.EventDetailDTO;
 import com.vecanhac.ddd.application.dto.event.EventResponseDTO;
-import com.vecanhac.ddd.application.dto.event.MyEventSearchCriteria;
+import com.vecanhac.ddd.application.dto.event.myevents.MyEventSearchCriteria;
+import com.vecanhac.ddd.application.dto.event.myevents.PatchUpdateEventDTO;
 import com.vecanhac.ddd.application.dto.search.EventSearchCriteria;
 import com.vecanhac.ddd.application.dto.search.EventSearchResponseDTO;
 import com.vecanhac.ddd.application.dto.showing.CreateShowingDTO;
+import com.vecanhac.ddd.application.dto.showing.ShowingDTO;
+import com.vecanhac.ddd.application.dto.showing.UpdateShowingDTO;
 import com.vecanhac.ddd.application.dto.ticket.CreateTicketDTO;
+import com.vecanhac.ddd.application.dto.ticket.TicketDTO;
+import com.vecanhac.ddd.application.dto.ticket.UpdateTicketDTO;
 import com.vecanhac.ddd.application.exception.BadRequestException;
 import com.vecanhac.ddd.application.helper.SlugUtil;
 import com.vecanhac.ddd.application.mapper.EventMapper;
 import com.vecanhac.ddd.application.mapper.TicketMapper;
 import com.vecanhac.ddd.application.service.event.EventAppService;
-import com.vecanhac.ddd.application.service.ticket.impl.TicketAppServiceImpl;
 import com.vecanhac.ddd.domain.event.EventEntity;
 import com.vecanhac.ddd.domain.event.EventRepository;
 import com.vecanhac.ddd.domain.event.EventSearchFilter;
@@ -272,6 +276,150 @@ public class EventAppServiceImpl implements EventAppService {
                 .map(eventMapper::toEventResponseDTO)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    @Transactional
+    public EventResponseDTO patchUpdateEvent(Long eventId, PatchUpdateEventDTO request, Long userId) {
+        EventEntity event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sự kiện"));
+
+        if (!event.getOrganizerId().equals(userId)) {
+            throw new BadRequestException("Không có quyền sửa sự kiện này");
+        }
+
+        // Chỉ cập nhật trường nào khác null
+        if (request.getTitle() != null) event.setTitle(request.getTitle());
+        if (request.getDescription() != null) event.setDescription(request.getDescription());
+        if (request.getCoverImageUrl() != null) event.setCoverImageUrl(request.getCoverImageUrl());
+        if (request.getOrganizerName() != null) event.setOrganizerName(request.getOrganizerName());
+        if (request.getOrganizerLogoUrl() != null) event.setOrganizerLogoUrl(request.getOrganizerLogoUrl());
+        if (request.getStartTime() != null) event.setStartTime(request.getStartTime());
+        if (request.getEndTime() != null) event.setEndTime(request.getEndTime());
+        if (request.getVenue() != null) event.setVenue(request.getVenue());
+        if (request.getAddress() != null) event.setAddress(request.getAddress());
+        if (request.getLocationId() != null) event.setLocationId(request.getLocationId());
+
+        // Cập nhật từng showing
+        if (request.getShowings() != null) {
+            for (UpdateShowingDTO showingDTO : request.getShowings()) {
+                ShowingEntity showing = showingRepository.findById(showingDTO.getId())
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch diễn ID = " + showingDTO.getId()));
+
+                if (!showing.getEvent().getId().equals(eventId)) {
+                    throw new BadRequestException("Lịch diễn không thuộc sự kiện này");
+                }
+
+                if (showingDTO.getStartTime() != null) showing.setStartTime(showingDTO.getStartTime());
+                if (showingDTO.getEndTime() != null) showing.setEndTime(showingDTO.getEndTime());
+                if (showingDTO.getSeatMapId() != null) showing.setSeatMapId(showingDTO.getSeatMapId());
+                if (showingDTO.getIsEnabledQueue() != null) showing.setIsEnabledQueue(showingDTO.getIsEnabledQueue());
+
+                // Cập nhật ticket
+                if (showingDTO.getTickets() != null) {
+                    for (UpdateTicketDTO ticketDTO : showingDTO.getTickets()) {
+                        TicketEntity ticket = ticketRepository.findById(ticketDTO.getId())
+                                .orElseThrow(() -> new RuntimeException("Không tìm thấy vé ID = " + ticketDTO.getId()));
+
+                        if (!ticket.getShowing().getId().equals(showing.getId())) {
+                            throw new BadRequestException("Vé không thuộc lịch diễn này");
+                        }
+
+                        if (ticketDTO.getName() != null) ticket.setName(ticketDTO.getName());
+                        if (ticketDTO.getPrice() != null) ticket.setPrice(ticketDTO.getPrice());
+                        if (ticketDTO.getOriginalPrice() != null) ticket.setOriginalPrice(ticketDTO.getOriginalPrice());
+                        if (ticketDTO.getQuantityTotal() != null) ticket.setQuantityTotal(ticketDTO.getQuantityTotal());
+                        if (ticketDTO.getSaleStart() != null) ticket.setSaleStart(ticketDTO.getSaleStart());
+                        if (ticketDTO.getSaleEnd() != null) ticket.setSaleEnd(ticketDTO.getSaleEnd());
+                        if (ticketDTO.getColor() != null) ticket.setColor(ticketDTO.getColor());
+                        if (ticketDTO.getImageUrl() != null) ticket.setImageUrl(ticketDTO.getImageUrl());
+
+                        ticketRepository.save(ticket);
+                    }
+                }
+
+                showingRepository.save(showing);
+            }
+        }
+
+        EventEntity saved = eventRepository.save(event);
+        return mapToResponseDTO(saved);
+    }
+
+
+
+    @Override
+    @Transactional
+    public void deleteEvent(Long eventId, Long userId) {
+        EventEntity event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sự kiện"));
+
+        if (!event.getOrganizerId().equals(userId)) {
+            throw new BadRequestException("Không có quyền xóa sự kiện này");
+        }
+
+        if (event.getStatus() == EventStatus.PUBLISHED) {
+            throw new BadRequestException("Không thể xóa sự kiện đã được xuất bản");
+        }
+
+        // Xóa showings và tickets liên quan
+        List<ShowingEntity> showings = showingRepository.findByEvent(event);
+        for (ShowingEntity showing : showings) {
+            ticketRepository.deleteAll(ticketRepository.findByShowing(showing));
+        }
+        showingRepository.deleteAll(showings);
+
+        eventRepository.delete(event);
+    }
+
+    @Override
+    public EventDetailDTO getMyEventDetail(Long eventId, Long userId) {
+        EventEntity event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sự kiện"));
+
+        if (!event.getOrganizerId().equals(userId)) {
+            throw new BadRequestException("Bạn không có quyền xem chi tiết sự kiện này");
+        }
+
+        EventDetailDTO dto = new EventDetailDTO();
+        dto.setId(event.getId());
+        dto.setTitle(event.getTitle());
+        dto.setSlug(event.getSlug());
+        dto.setDescription(event.getDescription());
+        dto.setCoverImageUrl(event.getCoverImageUrl());
+        dto.setStartTime(event.getStartTime());
+        dto.setEndTime(event.getEndTime());
+        dto.setVenue(event.getVenue());
+        dto.setAndress(event.getAddress());
+        dto.setOrgName(event.getOrganizerName());
+        dto.setOrgImageUrl(event.getOrganizerLogoUrl());
+
+        var minPrice = ticketRepository.findMinPriceByEventId(eventId);
+        dto.setMinTicketPrice(minPrice != null ? minPrice.doubleValue() : null);
+
+        // Lấy showings
+        List<ShowingDTO> showingDTOs = showingRepository.findByEvent(event).stream()
+                .map(showing -> {
+                    ShowingDTO s = new ShowingDTO();
+                    s.setId(showing.getId());
+                    s.setStartTime(showing.getStartTime());
+                    s.setEndTime(showing.getEndTime());
+                    s.setSeatMapId(showing.getSeatMapId());
+                    s.setIsEnabledQueue(showing.getIsEnabledQueue());
+
+                    List<TicketDTO> tickets = ticketRepository.findByShowing(showing).stream()
+                            .map(TicketMapper::toDTO)
+                            .toList();
+                    s.setTickets(tickets);
+
+                    return s;
+                }).toList();
+
+        dto.setShowings(showingDTOs);
+
+        return dto;
+    }
+
+
 
 
 }

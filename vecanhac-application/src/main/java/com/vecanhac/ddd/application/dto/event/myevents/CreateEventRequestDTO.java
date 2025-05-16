@@ -1,10 +1,9 @@
-package com.vecanhac.ddd.application.dto.event;
+package com.vecanhac.ddd.application.dto.event.myevents;
 
 import com.vecanhac.ddd.application.dto.showing.CreateShowingDTO;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
-import org.antlr.v4.runtime.misc.NotNull;
 
 import java.time.LocalDateTime;
 import java.util.List;
