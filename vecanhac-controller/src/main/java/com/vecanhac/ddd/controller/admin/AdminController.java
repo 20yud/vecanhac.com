@@ -5,6 +5,7 @@ import com.vecanhac.ddd.application.dto.admin.AdminEventSummaryDTO;
 import com.vecanhac.ddd.application.dto.admin.AdminUserDTO;
 import com.vecanhac.ddd.application.dto.admin.UpdateUserRoleDTO;
 import com.vecanhac.ddd.application.service.admin.AdminAppService;
+import com.vecanhac.ddd.application.service.event.EventAppService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,6 +20,7 @@ import java.util.List;
 public class AdminController {
 
     private final AdminAppService adminAppService;
+    private final EventAppService eventAppService;
 
     @GetMapping("/only")
     public ResponseEntity<?> testOrganizerAccess() {
@@ -70,4 +72,6 @@ public class AdminController {
         adminAppService.updateUserRole(userId, request.getRole());
         return ResponseEntity.ok("Cập nhật vai trò thành công");
     }
+
+
 }

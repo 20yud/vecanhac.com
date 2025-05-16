@@ -19,7 +19,7 @@ public class EventMapper {
         dto.setSlug(event.getSlug());
         dto.setCoverImageUrl(event.getCoverImageUrl());
         dto.setStartTime(event.getStartTime());
-
+        dto.setStatus(event.getStatus());
         var minPrice = ticketRepository.findMinPriceByEventId(event.getId());
         if (minPrice != null) {
             dto.setMinTicketPrice(minPrice.doubleValue());

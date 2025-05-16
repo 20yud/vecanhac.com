@@ -1,5 +1,6 @@
 package com.vecanhac.ddd.application.dto.event;
 
+import com.vecanhac.ddd.domain.model.enums.EventStatus;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -14,4 +15,5 @@ public class EventResponseDTO {
     private String coverImageUrl;
     private LocalDateTime startTime;
     private Double minTicketPrice;
+    private EventStatus status;
 }
