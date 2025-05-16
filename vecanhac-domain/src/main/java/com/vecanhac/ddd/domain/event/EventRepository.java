@@ -36,4 +36,5 @@ public interface EventRepository extends JpaRepository<EventEntity, Long>, Event
 
     boolean existsBySlug(String slug); // ✅ Trả về boolean
 
+
 }

@@ -1,0 +1,92 @@
+🔐 1. Phân quyền
+Sử dụng UserRole với ADMIN
+
+Tất cả API admin/** đều yêu cầu @PreAuthorize("hasRole('ADMIN')")
+
+UserPrincipal đã cung cấp ROLE_ADMIN qua SimpleGrantedAuthority
+
+🛠 2. Các module chính cho Admin
+📍 2.1. Quản lý sự kiện (Moderate Events)
+Duyệt / từ chối sự kiện mới (status = PENDING)
+
+Xem danh sách sự kiện theo status
+
+📌 API:
+
+bash
+Copy
+Edit
+GET    /api/admin/events?status=PENDING
+PATCH  /api/admin/events/{id}/approve
+PATCH  /api/admin/events/{id}/reject
+👤 2.2. Quản lý người dùng (Users)
+Xem danh sách toàn bộ tài khoản
+
+Lọc theo vai trò USER, ORG, ADMIN
+
+Nâng cấp vai trò (USER → ORG)
+
+Khóa tài khoản vi phạm
+
+📌 API:
+
+bash
+Copy
+Edit
+GET    /api/admin/users
+PATCH  /api/admin/users/{id}/upgrade-role
+PATCH  /api/admin/users/{id}/lock
+📊 2.3. Thống kê hệ thống (System Stats)
+Tổng số người dùng / sự kiện / đơn hàng / vé bán
+
+Doanh thu theo ngày / tháng
+
+Biểu đồ trạng thái sự kiện
+
+📌 API:
+
+pgsql
+Copy
+Edit
+GET /api/admin/stats
+GET /api/admin/stats/revenue?range=month
+🎟 2.4. Quản lý mã giảm giá (Coupons)
+Tạo, sửa, xóa mã giảm giá
+
+Gán mã theo eventId, giới hạn lượt dùng
+
+📌 API:
+
+bash
+Copy
+Edit
+GET     /api/admin/coupons
+POST    /api/admin/coupons
+PUT     /api/admin/coupons/{id}
+DELETE  /api/admin/coupons/{id}
+🗂 2.5. Quản lý danh mục / địa điểm
+Thêm / xoá danh mục sự kiện
+
+Hiển thị danh sách tỉnh thành (đã có sẵn dữ liệu)
+
+📌 API:
+
+pgsql
+Copy
+Edit
+GET  /api/admin/locations
+POST /api/admin/categories
+🧱 3. Kiến trúc code DDD (Spring Boot)
+Controller: AdminEventController, AdminUserController, ...
+
+Application: AdminEventService, AdminStatsService, ...
+
+DTO: AdminApproveEventDTO, AdminUserSummaryDTO, ...
+
+🧪 4. Gợi ý triển khai đầu tiên
+Ưu tiên làm module Moderate Event trước vì:
+
+Gắn liền với flow tổ chức (ORG) tạo sự kiện
+
+Đơn giản, dễ test UI (chỉ cần danh sách + 2 nút duyệt / từ chối)
+

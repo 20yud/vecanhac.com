@@ -6,9 +6,12 @@ import com.vecanhac.ddd.application.dto.login.LoginResponseDTO;
 import com.vecanhac.ddd.application.dto.otp.ForgotPasswordRequestDTO;
 import com.vecanhac.ddd.application.dto.otp.ResetPasswordRequestDTO;
 import com.vecanhac.ddd.application.dto.otp.VerifyOtpRequestDTO;
+import com.vecanhac.ddd.application.dto.profile.UpdateUserProfileDTO;
+import com.vecanhac.ddd.application.dto.profile.UserProfileDTO;
 import com.vecanhac.ddd.application.dto.register.RegisterRequestDTO;
 import com.vecanhac.ddd.application.dto.register.RegisterResponseDTO;
 import com.vecanhac.ddd.application.service.auth.AuthAppService;
+import com.vecanhac.ddd.application.service.profile.UserProfileAppService;
 import com.vecanhac.ddd.domain.security.UserPrincipal;
 import com.vecanhac.ddd.domain.token.TokenProvider;
 import com.vecanhac.ddd.domain.user.UserEntity;
@@ -30,30 +33,25 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthAppService authAppService;
+    private final UserProfileAppService userProfileAppService;
     private final TokenProvider tokenProvider;
-    private final UserRepository userRepository;
-
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDTO> login(@RequestBody LoginRequestDTO request) {
         LoginResponseDTO response = authAppService.login(request);
 
-        // Gửi token vào cookie
         ResponseCookie cookie = ResponseCookie.from("token", response.getToken())
-                .httpOnly(false) // đổi thành true nếu không dùng JS truy cập
-                .secure(false) // đổi thành true nếu chạy HTTPS
-                .sameSite("None")
+                .httpOnly(false)
+                .secure(false)
+                .sameSite("Lax")
                 .path("/")
                 .maxAge(86400)
-                .sameSite("Lax")
                 .build();
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(response);
     }
-
-
 
     @PostMapping("/register")
     public RegisterResponseDTO register(@RequestBody RegisterRequestDTO request) {
@@ -72,13 +70,13 @@ public class AuthController {
         return ResponseEntity.ok("OTP đã được gửi đến email.");
     }
 
-
     @PostMapping("/reset-password")
     public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequestDTO request) {
         authAppService.resetPassword(request.getEmail(), request.getNewPassword());
         return ResponseEntity.ok("Đặt lại mật khẩu thành công.");
     }
 
+    // ✅ Thông tin user hiện tại
     @GetMapping("/me")
     public ResponseEntity<CurrentUserDTO> getCurrentUser(@AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.ok(new CurrentUserDTO(
@@ -88,8 +86,20 @@ public class AuthController {
         ));
     }
 
-    record CurrentUserDTO(String email, String fullName, String role) {}
+    // ✅ Hồ sơ chi tiết user
+    @GetMapping("/me/profile")
+    public ResponseEntity<UserProfileDTO> getProfile(@AuthenticationPrincipal UserPrincipal principal) {
+        UserProfileDTO profile = userProfileAppService.getProfile(principal.getEmail());
+        return ResponseEntity.ok(profile);
+    }
+
+    @PutMapping("/me/profile")
+    public ResponseEntity<Void> updateProfile(@AuthenticationPrincipal UserPrincipal principal,
+                                              @RequestBody UpdateUserProfileDTO dto) {
+        userProfileAppService.updateProfile(principal.getEmail(), dto);
+        return ResponseEntity.ok().build();
+    }
+
+    // Response DTO dùng cho /me
+    public record CurrentUserDTO(String email, String fullName, String role) {}
 }
-
-
-
