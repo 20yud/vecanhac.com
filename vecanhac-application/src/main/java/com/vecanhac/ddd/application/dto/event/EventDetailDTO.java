@@ -23,5 +23,5 @@ public class EventDetailDTO {
     private String andress;
 
     private List<ShowingDTO> showings;
-    private List<TicketDTO> tickets; // 👈 Thêm dòng này
+    //private List<TicketDTO> tickets; // 👈 Thêm dòng này
 }

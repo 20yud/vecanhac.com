@@ -134,12 +134,25 @@ public class EventAppServiceImpl implements EventAppService {
         var minPrice = ticketRepository.findMinPriceByEventId(id);
         dto.setMinTicketPrice(minPrice != null ? minPrice.doubleValue() : null);
 
-        // ✅ Thêm đoạn này để lấy danh sách vé
-        var tickets = ticketRepository.findByEventId(id)
-                .stream()
-                .map(TicketMapper::toDTO)
-                .toList();
-        dto.setTickets(tickets); // đảm bảo EventDetailDTO có field `tickets`
+        // Lấy showings
+        List<ShowingDTO> showingDTOs = showingRepository.findByEvent(event).stream()
+                .map(showing -> {
+                    ShowingDTO s = new ShowingDTO();
+                    s.setId(showing.getId());
+                    s.setStartTime(showing.getStartTime());
+                    s.setEndTime(showing.getEndTime());
+                    s.setSeatMapId(showing.getSeatMapId());
+                    s.setIsEnabledQueue(showing.getIsEnabledQueue());
+
+                    List<TicketDTO> tickets = ticketRepository.findByShowing(showing).stream()
+                            .map(TicketMapper::toDTO)
+                            .toList();
+                    s.setTickets(tickets);
+
+                    return s;
+                }).toList();
+
+        dto.setShowings(showingDTOs);
 
         return dto;
     }
@@ -287,7 +300,7 @@ public class EventAppServiceImpl implements EventAppService {
             throw new BadRequestException("Không có quyền sửa sự kiện này");
         }
 
-        // Chỉ cập nhật trường nào khác null
+        // 🔧 Cập nhật thông tin cơ bản
         if (request.getTitle() != null) event.setTitle(request.getTitle());
         if (request.getDescription() != null) event.setDescription(request.getDescription());
         if (request.getCoverImageUrl() != null) event.setCoverImageUrl(request.getCoverImageUrl());
@@ -299,14 +312,24 @@ public class EventAppServiceImpl implements EventAppService {
         if (request.getAddress() != null) event.setAddress(request.getAddress());
         if (request.getLocationId() != null) event.setLocationId(request.getLocationId());
 
-        // Cập nhật từng showing
+        // 🔄 Duyệt qua danh sách lịch diễn
         if (request.getShowings() != null) {
             for (UpdateShowingDTO showingDTO : request.getShowings()) {
-                ShowingEntity showing = showingRepository.findById(showingDTO.getId())
-                        .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch diễn ID = " + showingDTO.getId()));
 
-                if (!showing.getEvent().getId().equals(eventId)) {
-                    throw new BadRequestException("Lịch diễn không thuộc sự kiện này");
+                ShowingEntity showing;
+
+                // ➕ THÊM MỚI SHOWING
+                if (showingDTO.getId() == null) {
+                    showing = new ShowingEntity();
+                    showing.setEvent(event);
+                } else {
+                    // 🛠️ CẬP NHẬT SHOWING CŨ
+                    showing = showingRepository.findById(showingDTO.getId())
+                            .orElseThrow(() -> new RuntimeException("Không tìm thấy lịch diễn ID = " + showingDTO.getId()));
+
+                    if (!showing.getEvent().getId().equals(eventId)) {
+                        throw new BadRequestException("Lịch diễn không thuộc sự kiện này");
+                    }
                 }
 
                 if (showingDTO.getStartTime() != null) showing.setStartTime(showingDTO.getStartTime());
@@ -314,14 +337,27 @@ public class EventAppServiceImpl implements EventAppService {
                 if (showingDTO.getSeatMapId() != null) showing.setSeatMapId(showingDTO.getSeatMapId());
                 if (showingDTO.getIsEnabledQueue() != null) showing.setIsEnabledQueue(showingDTO.getIsEnabledQueue());
 
-                // Cập nhật ticket
+                ShowingEntity savedShowing = showingRepository.save(showing);
+
+                // ⬇️ Cập nhật hoặc thêm ticket cho showing đó
                 if (showingDTO.getTickets() != null) {
                     for (UpdateTicketDTO ticketDTO : showingDTO.getTickets()) {
-                        TicketEntity ticket = ticketRepository.findById(ticketDTO.getId())
-                                .orElseThrow(() -> new RuntimeException("Không tìm thấy vé ID = " + ticketDTO.getId()));
+                        TicketEntity ticket;
 
-                        if (!ticket.getShowing().getId().equals(showing.getId())) {
-                            throw new BadRequestException("Vé không thuộc lịch diễn này");
+                        if (ticketDTO.getId() == null) {
+                            // ➕ THÊM MỚI TICKET
+                            ticket = new TicketEntity();
+                            ticket.setShowing(savedShowing);
+                            ticket.setStatus(TicketStatus.AVAILABLE);
+                            ticket.setQuantitySold(0);
+                        } else {
+                            // 🛠️ CẬP NHẬT TICKET CŨ
+                            ticket = ticketRepository.findById(ticketDTO.getId())
+                                    .orElseThrow(() -> new RuntimeException("Không tìm thấy vé ID = " + ticketDTO.getId()));
+
+                            if (!ticket.getShowing().getId().equals(savedShowing.getId())) {
+                                throw new BadRequestException("Vé không thuộc lịch diễn này");
+                            }
                         }
 
                         if (ticketDTO.getName() != null) ticket.setName(ticketDTO.getName());
@@ -336,14 +372,13 @@ public class EventAppServiceImpl implements EventAppService {
                         ticketRepository.save(ticket);
                     }
                 }
-
-                showingRepository.save(showing);
             }
         }
 
         EventEntity saved = eventRepository.save(event);
         return mapToResponseDTO(saved);
     }
+
 
 
 

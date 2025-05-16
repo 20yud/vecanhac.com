@@ -59,9 +59,9 @@ public class EventOrganizerController {
     }
 
 
-    @PatchMapping("/{eventId}")
+    @PatchMapping("/update/{eventId}")
     public ResponseEntity<EventResponseDTO> patchUpdateEvent(
-            @PathVariable Long eventId,
+            @PathVariable(name = "eventId") Long eventId,
             @Valid @RequestBody PatchUpdateEventDTO request,
             @AuthenticationPrincipal UserPrincipal user
     ) {
@@ -72,7 +72,7 @@ public class EventOrganizerController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteEvent(
-            @PathVariable Long id,
+            @PathVariable(name = "eventId") Long id,
             @AuthenticationPrincipal UserPrincipal user
     ) {
         eventAppService.deleteEvent(id, user.getId());
