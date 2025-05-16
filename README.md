@@ -1,61 +1,75 @@
-# 🎫 Vecanhac.com – Music Ticket Booking Platform
+# 🎫 Vecanhac.com – Concert Ticket Booking Platform
 
-**Vecanhac.com** là một nền tảng đặt vé sự kiện âm nhạc, bao gồm hệ thống hiển thị danh sách sự kiện, chi tiết sự kiện, các loại vé, trạng thái vé và gợi ý sự kiện tương tự.
-
----
-
-## 🧩 Công nghệ sử dụng
-
-### Frontend (FE)
-- **Next.js** (App Router)
-- **TailwindCSS**
-- Tối ưu cho mobile + desktop
-- Component hóa từng phần như: `EventCard`, `FilterPanel`, `DateDropdown`,...
-- Link: https://github.com/20yud/vecanhacUI
-
-### Backend (BE)
-- **Java Spring Boot**
-- Theo mô hình **DDD (Domain-Driven Design)**:
-  - `domain`: chứa `Entity`, `Repository`
-  - `application`: chứa `DTO`, `Service`
-  - `controller`: chứa các REST API
-
-#### BE sử dụng thêm:
-- **Spring Data JPA**
-- **Lombok**
-- **MySQL**
-- *(Dự kiến)* MapStruct để mapping DTO ↔ Entity
+**Vecanhac.com** là một nền tảng đặt vé sự kiện âm nhạc hiện đại, được thiết kế để xử lý **lưu lượng cao**, tích hợp hệ thống **thanh toán**, **mã giảm giá**, **xác thực người dùng**, và hỗ trợ tổ chức đăng sự kiện. Giao diện tối ưu trên mobile và desktop, trải nghiệm người dùng mượt mà.
 
 ---
 
-## 🖼 Trang chủ (Home Page)
+## ⚙️ Tech Stack
 
-Hiển thị danh sách các sự kiện đặc biệt với:
-- Lọc theo ngày, thành phố, danh mục
-- Phân trang: “Tải thêm” sự kiện
-- Responsive toàn giao diện
+### 🔹 Frontend
+- **Next.js (App Router)** + **TailwindCSS**
+- UI động, responsive toàn bộ
+- Component hóa: `EventCard`, `AuthModal`, `TicketSelector`, `OrderSummary`,...
+- Tích hợp countdown timer, mã giảm giá, xác thực OTP
+- GitHub: [vecanhacUI](https://github.com/20yud/vecanhacUI)
 
-![image](https://github.com/user-attachments/assets/5fa18e32-dd08-44d8-a175-497d1a7c3306)
-
+### 🔹 Backend
+- **Java Spring Boot**, theo mô hình **DDD** chuẩn:
+  - `domain`: Entity, Repository
+  - `application`: Service, DTO, Mapper
+  - `controller`: REST APIs
+- **Spring Security**: JWT + Cookie Auth
+- **MySQL**, **Redis** (Locking vé), **Lombok**, (dự kiến: MapStruct)
+- Hỗ trợ:
+  - Tạo/sửa/xóa sự kiện
+  - Order vé có timeout 15 phút
+  - API động kiểu PATCH
+  - Upload ảnh, QR Code
+  - Lưu lịch sử đơn hàng, trạng thái vé
 
 ---
 
-## 📄 Trang chi tiết sự kiện (Event Detail Page)
+## 🔥 Các Tính Năng Chính
 
-Gồm các phần:
-- Tiêu đề, thời gian, địa điểm, banner sự kiện
-- Mô tả chi tiết chương trình
-- Đơn vị tổ chức: logo + thông tin
-![image](https://github.com/user-attachments/assets/efd7fa0c-9aa8-42dd-bdb8-96e5cb33fd63)
+### 🏠 Home Page
+- Lọc sự kiện theo **ngày**, **thành phố**, **danh mục**
+- “Tải thêm” phân trang
+- UI tối ưu trải nghiệm trên mobile
+
+### 📄 Event Detail Page
+- Banner sự kiện, đơn vị tổ chức
+- Mô tả chương trình (HTML safe render)
+- Thông tin thời gian – địa điểm rõ ràng
+
+### 🎟️ Ticket + Showing
+- Vé được nhóm theo lịch diễn (showing)
+- Trạng thái vé: `AVAILABLE`, `SOLD OUT`
+- Hiển thị giá giảm / gốc
+- Tương tác mượt, hiệu ứng dropdown vé chi tiết
+
+### 🛒 Booking Flow
+1. **Chọn vé**
+2. **Điền thông tin** + mã giảm giá
+3. **Thanh toán VNPay** (có timeout 15 phút)
+4. Xem vé trong trang **“Vé của tôi”**, gồm QR code
+
+### 👤 Auth Flow
+- Đăng ký OTP qua email (chưa lưu DB khi chưa xác thực)
+- Xác thực qua cookie JWT
+- Quên mật khẩu = OTP + đổi pass
 
 ---
 
-## 🎟️ Ticket Section
+## 🧪 Tính Toán Cho Scale Lớn
+- Redis Lock chống overbook vé
+- Hủy đơn chưa thanh toán sau 15 phút
+- Rate limit chống spam
+- Phân biệt người dùng cá nhân & tổ chức
+- Scheduler + Kafka (planned)
 
-- Các vé được **nhóm theo ngày diễn ra**
-- Hiển thị trạng thái: `AVAILABLE` / `SOLD OUT`
-- Nhấp vào nhóm ngày để **mở dropdown** các vé chi tiết
-- Có nút **“Mua ngay”**, khi bấm sẽ tự scroll đến phần vé
-![image](https://github.com/user-attachments/assets/aae4a639-bd06-4e02-a643-ca51e59c7208)
+---
 
+## 🚀 Mục Tiêu
+> Xây dựng hệ thống booking sự kiện âm nhạc có thể mở rộng, hướng đến sản phẩm thực tế, tích hợp thanh toán, an toàn và dễ sử dụng cho cả người dùng lẫn đơn vị tổ chức.
 
+---
