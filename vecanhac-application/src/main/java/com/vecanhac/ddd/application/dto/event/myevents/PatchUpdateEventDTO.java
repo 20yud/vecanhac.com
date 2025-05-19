@@ -22,4 +22,7 @@ public class PatchUpdateEventDTO {
 
     @Valid
     private List<UpdateShowingDTO> showings;
+
+    private String status; // 👈 thêm trường này
+
 }

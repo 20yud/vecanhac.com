@@ -14,10 +14,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping("/api/admin/users")
 @PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
-public class AdminController {
+public class AdminUserController {
 
     private final AdminAppService adminAppService;
     private final EventAppService eventAppService;
@@ -27,36 +27,13 @@ public class AdminController {
         return ResponseEntity.ok("Bạn là ADMIN");
     }
 
-
-
     @GetMapping
-    public ResponseEntity<List<AdminEventSummaryDTO>> getPendingEvents(
-            @RequestParam(name = "status", defaultValue = "PENDING") String status) {
-        return ResponseEntity.ok(adminAppService.getEventsByStatus(status));
-    }
-
-    @PatchMapping("/{eventId}/approve")
-    public ResponseEntity<String> approveEvent(
-            @PathVariable(name = "eventId") Long eventId) {
-        adminAppService.approveEvent(eventId);
-        return ResponseEntity.ok("Sự kiện đã được duyệt");
-    }
-
-    @PatchMapping("/{eventId}/reject")
-    public ResponseEntity<String> rejectEvent(
-            @PathVariable(name = "eventId") Long eventId) {
-        adminAppService.rejectEvent(eventId);
-        return ResponseEntity.ok("Sự kiện đã bị từ chối");
-    }
-
-
-    @GetMapping("/users")
     public ResponseEntity<List<AdminUserDTO>> getAllUsers() {
         System.out.println("📢 GỌI getAllUsers()");
         return ResponseEntity.ok(adminAppService.getAllUsers());
     }
 
-    @GetMapping("/users/search")
+    @GetMapping("/search")
     public ResponseEntity<List<AdminUserDTO>> searchUsersByRole(
             @RequestParam(name = "role") String role) {
         System.out.println("📢 GỌI searchUsersByRole(" + role + ")");
@@ -65,7 +42,7 @@ public class AdminController {
 
 
 
-    @PatchMapping("/users/{userId}/role")
+    @PatchMapping("/{userId}/role")
     public ResponseEntity<String> updateUserRole(
             @PathVariable(name = "userId") Long userId,
             @RequestBody UpdateUserRoleDTO request) {

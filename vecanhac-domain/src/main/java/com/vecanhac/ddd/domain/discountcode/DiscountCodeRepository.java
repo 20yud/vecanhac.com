@@ -6,5 +6,6 @@ import java.util.Optional;
 
 public interface DiscountCodeRepository extends JpaRepository<DiscountCodeEntity, Long> {
     Optional<DiscountCodeEntity> findByCodeAndIsActiveTrue(String code);
+    long countByIsActiveTrue();
 
 }

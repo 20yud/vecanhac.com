@@ -1,8 +1,12 @@
 package com.vecanhac.ddd.infrastructure.persistence.repository.event;
 
+import com.fasterxml.jackson.databind.util.ArrayBuilders;
+import com.vecanhac.ddd.application.exception.BadRequestException;
+import com.vecanhac.ddd.domain.event.AdminEventSearchCriteria;
 import com.vecanhac.ddd.domain.event.EventEntity;
 import com.vecanhac.ddd.domain.event.EventRepositoryCustom;
 import com.vecanhac.ddd.domain.event.EventSearchFilter;
+import com.vecanhac.ddd.domain.model.enums.EventStatus;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
@@ -23,6 +27,8 @@ public class EventRepositoryImpl implements EventRepositoryCustom {
 
     @PersistenceContext
     private EntityManager entityManager;
+
+
 
     @Override
     public Page<EventEntity> searchEvents(EventSearchFilter filter, Pageable pageable) {
@@ -75,4 +81,45 @@ public class EventRepositoryImpl implements EventRepositoryCustom {
 
         return new PageImpl<>(resultList, pageable, resultList.size());
     }
+
+
+    @Override
+    public Page<EventEntity> searchEvents(AdminEventSearchCriteria criteria, Pageable pageable) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<EventEntity> cq = cb.createQuery(EventEntity.class);
+        Root<EventEntity> event = cq.from(EventEntity.class);
+
+        List<Predicate> predicates = new ArrayList<>();
+
+        if (criteria.getStatus() != null && !"ALL".equalsIgnoreCase(criteria.getStatus())) {
+            try {
+                EventStatus status = EventStatus.valueOf(criteria.getStatus().toUpperCase());
+                predicates.add(cb.equal(event.get("status"), status));
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException("Trạng thái không hợp lệ: " + criteria.getStatus());
+            }
+        }
+
+        if (criteria.getKeyword() != null && !criteria.getKeyword().isBlank()) {
+            String kw = "%" + criteria.getKeyword().toLowerCase() + "%";
+            predicates.add(cb.or(
+                    cb.like(cb.lower(event.get("title")), kw),
+                    cb.like(cb.lower(event.get("venue")), kw)
+            ));
+        }
+
+        cq.where(predicates.toArray(new Predicate[0]));
+        cq.orderBy(cb.desc(event.get("createdAt")));
+
+        TypedQuery<EventEntity> query = entityManager.createQuery(cq);
+        query.setFirstResult((int) pageable.getOffset());
+        query.setMaxResults(pageable.getPageSize());
+
+        List<EventEntity> resultList = query.getResultList();
+
+        return new PageImpl<>(resultList, pageable, resultList.size()); // ❗ Nếu cần total thực, phải làm query count riêng
+    }
+
+
+
 }

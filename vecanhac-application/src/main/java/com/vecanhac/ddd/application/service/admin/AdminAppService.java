@@ -1,11 +1,11 @@
 package com.vecanhac.ddd.application.service.admin;
 
+import com.vecanhac.ddd.domain.event.AdminEventSearchCriteria;
 import com.vecanhac.ddd.application.dto.admin.AdminEventSummaryDTO;
 import com.vecanhac.ddd.application.dto.admin.AdminUserDTO;
 import com.vecanhac.ddd.application.dto.event.EventDetailDTO;
 import com.vecanhac.ddd.application.dto.event.EventResponseDTO;
 import com.vecanhac.ddd.application.dto.event.myevents.PatchUpdateEventDTO;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -22,7 +22,8 @@ public interface AdminAppService {
     EventDetailDTO getEventDetailAsAdmin(Long eventId);
     EventResponseDTO patchUpdateEventAsAdmin(Long eventId, PatchUpdateEventDTO request);
     void deleteEventAsAdmin(Long eventId);
-
+    List<AdminEventSummaryDTO> searchEvents(AdminEventSearchCriteria criteria);
+    void changeEventStatus(Long eventId, String newStatus);
 
 
 

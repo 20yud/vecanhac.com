@@ -1,5 +1,6 @@
 package com.vecanhac.ddd.application.service.admin.impl;
 
+import com.vecanhac.ddd.domain.event.AdminEventSearchCriteria;
 import com.vecanhac.ddd.application.dto.admin.AdminEventSummaryDTO;
 import com.vecanhac.ddd.application.dto.event.EventDetailDTO;
 import com.vecanhac.ddd.application.dto.event.EventResponseDTO;
@@ -24,12 +25,17 @@ import com.vecanhac.ddd.domain.user.UserEntity;
 import com.vecanhac.ddd.domain.user.UserRepository;
 import com.vecanhac.ddd.application.dto.admin.AdminUserDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import com.vecanhac.ddd.application.mapper.EventMapper;
 
 import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class AdminAppServiceImpl implements AdminAppService {
@@ -41,19 +47,30 @@ public class AdminAppServiceImpl implements AdminAppService {
     private final EventMapper eventMapper;
 
 
+    @Override
     public List<AdminEventSummaryDTO> getEventsByStatus(String statusString) {
-        EventStatus status = EventStatus.valueOf(statusString.toUpperCase());
-        return eventRepository.findByStatus(status)
-                .stream()
-                .map(event -> new AdminEventSummaryDTO(
-                        event.getId(),
-                        event.getTitle(),
-                        event.getVenue(),
-                        event.getStartTime(),
-                        event.getStatus().name()
-                ))
+        EventStatus status;
+        try {
+            status = EventStatus.valueOf(statusString.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("Trạng thái không hợp lệ: " + statusString);
+        }
+
+        List<EventEntity> events = eventRepository.findByStatus(status);
+
+        return events.stream()
+                .map(event -> AdminEventSummaryDTO.builder()
+                        .id(event.getId())
+                        .title(event.getTitle())
+                        .venue(event.getVenue())
+                        .startTime(event.getStartTime())
+                        .endTime(event.getEndTime())
+                        .status(event.getStatus())
+                        .organizerName(event.getOrganizerName())
+                        .build())
                 .toList();
     }
+
 
     @Transactional
     public void approveEvent(Long eventId) {
@@ -156,6 +173,7 @@ public class AdminAppServiceImpl implements AdminAppService {
         dto.setAndress(event.getAddress());
         dto.setOrgName(event.getOrganizerName());
         dto.setOrgImageUrl(event.getOrganizerLogoUrl());
+        dto.setStatus(event.getStatus().name()); // 👈 thêm dòng này
 
         var minPrice = ticketRepository.findMinPriceByEventId(eventId);
         dto.setMinTicketPrice(minPrice != null ? minPrice.doubleValue() : null);
@@ -245,7 +263,14 @@ public class AdminAppServiceImpl implements AdminAppService {
                         if (ticketDTO.getSaleEnd() != null) ticket.setSaleEnd(ticketDTO.getSaleEnd());
                         if (ticketDTO.getColor() != null) ticket.setColor(ticketDTO.getColor());
                         if (ticketDTO.getImageUrl() != null) ticket.setImageUrl(ticketDTO.getImageUrl());
-
+                        if (request.getStatus() != null) {
+                            try {
+                                EventStatus newStatus = EventStatus.valueOf(request.getStatus().toUpperCase());
+                                event.setStatus(newStatus);
+                            } catch (IllegalArgumentException e) {
+                                throw new BadRequestException("Trạng thái không hợp lệ: " + request.getStatus());
+                            }
+                        }
                         ticketRepository.save(ticket);
                     }
                 }
@@ -274,5 +299,52 @@ public class AdminAppServiceImpl implements AdminAppService {
 
         eventRepository.delete(event);
     }
+
+
+    @Override
+    public List<AdminEventSummaryDTO> searchEvents(AdminEventSearchCriteria criteria) {
+        EventStatus status = null;
+        if (!"ALL".equalsIgnoreCase(criteria.getStatus())) {
+            try {
+                status = EventStatus.valueOf(criteria.getStatus().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException("Trạng thái không hợp lệ: " + criteria.getStatus());
+            }
+        }
+
+        Pageable pageable = PageRequest.of(criteria.getPage(), criteria.getSize(), Sort.by("createdAt").descending());
+        Page<EventEntity> events = eventRepository.searchEvents(criteria, pageable);
+
+
+        return events.stream()
+                .map(event -> AdminEventSummaryDTO.builder()
+                        .id(event.getId())
+                        .title(event.getTitle())
+                        .venue(event.getVenue())
+                        .startTime(event.getStartTime())
+                        .endTime(event.getEndTime())
+                        .status(event.getStatus())
+                        .organizerName(event.getOrganizerName())
+                        .build())
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void changeEventStatus(Long eventId, String newStatus) {
+        EventEntity event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new BadRequestException("Không tìm thấy sự kiện với ID: " + eventId));
+
+        EventStatus status;
+        try {
+            status = EventStatus.valueOf(newStatus.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("Trạng thái không hợp lệ: " + newStatus);
+        }
+
+        event.setStatus(status);
+        eventRepository.save(event);
+    }
+
 
 }

@@ -22,6 +22,7 @@ public class EventDetailDTO {
     private Double minTicketPrice;
     private String andress;
 
+    private String status; // 👈 thêm trường này
+
     private List<ShowingDTO> showings;
-    //private List<TicketDTO> tickets; // 👈 Thêm dòng này
 }
