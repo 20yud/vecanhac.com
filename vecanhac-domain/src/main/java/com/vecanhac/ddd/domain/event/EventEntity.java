@@ -55,4 +55,5 @@ public class EventEntity {
     private Long organizerId;
 
     private Long locationId;
+
 }

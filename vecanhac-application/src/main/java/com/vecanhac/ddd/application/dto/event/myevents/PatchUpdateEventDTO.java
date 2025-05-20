@@ -19,6 +19,7 @@ public class PatchUpdateEventDTO {
     private String venue;
     private String address;
     private Long locationId;
+    private Long categoryId;
 
     @Valid
     private List<UpdateShowingDTO> showings;

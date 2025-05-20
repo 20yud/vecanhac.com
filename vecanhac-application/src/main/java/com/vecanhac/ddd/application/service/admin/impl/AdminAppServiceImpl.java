@@ -1,5 +1,11 @@
 package com.vecanhac.ddd.application.service.admin.impl;
 
+import com.vecanhac.ddd.application.dto.category.CategoryDTO;
+import com.vecanhac.ddd.application.dto.location.LocationDTO;
+import com.vecanhac.ddd.application.mapper.CategoryMapper;
+import com.vecanhac.ddd.application.mapper.LocationMapper;
+import com.vecanhac.ddd.domain.category.CategoryEntity;
+import com.vecanhac.ddd.domain.category.CategoryRepository;
 import com.vecanhac.ddd.domain.event.AdminEventSearchCriteria;
 import com.vecanhac.ddd.application.dto.admin.AdminEventSummaryDTO;
 import com.vecanhac.ddd.application.dto.event.EventDetailDTO;
@@ -14,6 +20,10 @@ import com.vecanhac.ddd.application.mapper.TicketMapper;
 import com.vecanhac.ddd.application.service.admin.AdminAppService;
 import com.vecanhac.ddd.domain.event.EventEntity;
 import com.vecanhac.ddd.domain.event.EventRepository;
+import com.vecanhac.ddd.domain.eventcategory.EventCategoryEntity;
+import com.vecanhac.ddd.domain.eventcategory.EventCategoryRepository;
+import com.vecanhac.ddd.domain.location.LocationEntity;
+import com.vecanhac.ddd.domain.location.LocationRepository;
 import com.vecanhac.ddd.domain.model.enums.EventStatus;
 import com.vecanhac.ddd.domain.model.enums.TicketStatus;
 import com.vecanhac.ddd.domain.model.enums.UserRole;
@@ -45,6 +55,10 @@ public class AdminAppServiceImpl implements AdminAppService {
     private final TicketRepository ticketRepository;
     private final ShowingRepository showingRepository;
     private final EventMapper eventMapper;
+    private final CategoryRepository categoryRepo;
+    private final LocationRepository locationRepo;
+    private final EventCategoryRepository eventCategoryRepository;
+
 
 
     @Override
@@ -173,7 +187,12 @@ public class AdminAppServiceImpl implements AdminAppService {
         dto.setAndress(event.getAddress());
         dto.setOrgName(event.getOrganizerName());
         dto.setOrgImageUrl(event.getOrganizerLogoUrl());
-        dto.setStatus(event.getStatus().name()); // 👈 thêm dòng này
+        dto.setStatus(event.getStatus().name());
+        dto.setLocationId(event.getLocationId());
+        // Truy xuất category_id từ bảng event_categories
+        eventCategoryRepository.findByEventId(eventId)
+                .ifPresent(eventCategory -> dto.setCategoryId(eventCategory.getCategoryId()));
+
 
         var minPrice = ticketRepository.findMinPriceByEventId(eventId);
         dto.setMinTicketPrice(minPrice != null ? minPrice.doubleValue() : null);
@@ -215,6 +234,19 @@ public class AdminAppServiceImpl implements AdminAppService {
         if (request.getVenue() != null) event.setVenue(request.getVenue());
         if (request.getAddress() != null) event.setAddress(request.getAddress());
         if (request.getLocationId() != null) event.setLocationId(request.getLocationId());
+
+        if (request.getCategoryId() != null) {
+            // Xoá tất cả category cũ của sự kiện này
+            eventCategoryRepository.deleteByEventId(eventId);
+
+            // Tạo bản ghi mới trong bảng event_categories
+            EventCategoryEntity newCategory = new EventCategoryEntity();
+            newCategory.setEventId(eventId);
+            newCategory.setCategoryId(request.getCategoryId());
+
+            eventCategoryRepository.save(newCategory);
+        }
+
 
         if (request.getShowings() != null) {
             for (UpdateShowingDTO showingDTO : request.getShowings()) {
@@ -263,15 +295,16 @@ public class AdminAppServiceImpl implements AdminAppService {
                         if (ticketDTO.getSaleEnd() != null) ticket.setSaleEnd(ticketDTO.getSaleEnd());
                         if (ticketDTO.getColor() != null) ticket.setColor(ticketDTO.getColor());
                         if (ticketDTO.getImageUrl() != null) ticket.setImageUrl(ticketDTO.getImageUrl());
-                        if (request.getStatus() != null) {
-                            try {
-                                EventStatus newStatus = EventStatus.valueOf(request.getStatus().toUpperCase());
-                                event.setStatus(newStatus);
-                            } catch (IllegalArgumentException e) {
-                                throw new BadRequestException("Trạng thái không hợp lệ: " + request.getStatus());
-                            }
-                        }
+
                         ticketRepository.save(ticket);
+                    }
+                    if (request.getStatus() != null) {
+                        try {
+                            EventStatus newStatus = EventStatus.valueOf(request.getStatus().toUpperCase());
+                            event.setStatus(newStatus);
+                        } catch (IllegalArgumentException e) {
+                            throw new BadRequestException("Trạng thái không hợp lệ: " + request.getStatus());
+                        }
                     }
                 }
             }
@@ -346,5 +379,37 @@ public class AdminAppServiceImpl implements AdminAppService {
         eventRepository.save(event);
     }
 
+
+    @Override
+    public List<CategoryDTO> getAllCategories() {
+        return categoryRepo.findAll().stream().map(CategoryMapper::toDTO).toList();
+    }
+
+    @Override
+    public CategoryDTO createCategory(CategoryDTO dto) {
+        CategoryEntity entity = CategoryMapper.toEntity(dto);
+        return CategoryMapper.toDTO(categoryRepo.save(entity));
+    }
+
+    @Override
+    public void deleteCategory(Long id) {
+        categoryRepo.deleteById(id);
+    }
+
+    @Override
+    public List<LocationDTO> getAllLocations() {
+        return locationRepo.findAll().stream().map(LocationMapper::toDTO).toList();
+    }
+
+    @Override
+    public LocationDTO createLocation(LocationDTO dto) {
+        LocationEntity entity = LocationMapper.toEntity(dto);
+        return LocationMapper.toDTO(locationRepo.save(entity));
+    }
+
+    @Override
+    public void deleteLocation(Long id) {
+        locationRepo.deleteById(id);
+    }
 
 }

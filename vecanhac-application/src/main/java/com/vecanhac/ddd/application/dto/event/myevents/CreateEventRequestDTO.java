@@ -19,6 +19,8 @@ public class CreateEventRequestDTO {
     private String organizerName;
     private String organizerLogoUrl;
 
+    private Long categoryId;
+
     private LocalDateTime startTime;
     private LocalDateTime endTime;
 

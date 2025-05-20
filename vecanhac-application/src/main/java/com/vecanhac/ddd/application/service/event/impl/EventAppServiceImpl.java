@@ -23,6 +23,8 @@ import com.vecanhac.ddd.domain.event.EventRepository;
 import com.vecanhac.ddd.domain.event.EventSearchFilter;
 import com.vecanhac.ddd.domain.event.MyEventRepository;
 import com.vecanhac.ddd.domain.event.myevents.MyEventSearchFilter;
+import com.vecanhac.ddd.domain.eventcategory.EventCategoryEntity;
+import com.vecanhac.ddd.domain.eventcategory.EventCategoryRepository;
 import com.vecanhac.ddd.domain.projection.EventTrendingProjection;
 import com.vecanhac.ddd.domain.model.enums.EventStatus;
 import com.vecanhac.ddd.domain.model.enums.TicketStatus;
@@ -65,6 +67,9 @@ public class EventAppServiceImpl implements EventAppService {
     private MyEventRepository myEventRepository;
 
     @Autowired
+    private EventCategoryRepository eventCategoryRepository;
+
+    @Autowired
     private EventMapper eventMapper;
 
     @Override
@@ -78,6 +83,7 @@ public class EventAppServiceImpl implements EventAppService {
         Page<EventEntity> events = eventRepository.findByStatus(EventStatus.PUBLISHED, pageable);
         return events.map(this::mapToResponseDTO);
     }
+
 
 
     @Override
@@ -222,9 +228,20 @@ public class EventAppServiceImpl implements EventAppService {
         event.setLocationId(request.getLocationId());
         event.setCreatedAt(LocalDateTime.now());
         event.setStatus(EventStatus.PENDING);
-        event.setOrganizerId(request.getOrganizerId()); // 👈 Đã gán từ controller: user.getId()
-
+        event.setOrganizerId(request.getOrganizerId());
         EventEntity savedEvent = eventRepository.save(event);
+        if (request.getCategoryId() != null) {
+            EventCategoryEntity newCategory = new EventCategoryEntity();
+            newCategory.setEventId(savedEvent.getId());
+            newCategory.setCategoryId(request.getCategoryId());
+            eventCategoryRepository.save(newCategory);
+        }
+
+
+
+        // 👈 Đã gán từ controller: user.getId()
+
+
 
         for (CreateShowingDTO showingReq : request.getShowings()) {
             ShowingEntity showing = new ShowingEntity();
@@ -311,6 +328,17 @@ public class EventAppServiceImpl implements EventAppService {
         if (request.getVenue() != null) event.setVenue(request.getVenue());
         if (request.getAddress() != null) event.setAddress(request.getAddress());
         if (request.getLocationId() != null) event.setLocationId(request.getLocationId());
+        if (request.getCategoryId() != null) {
+            // Xoá tất cả category cũ của sự kiện này
+            eventCategoryRepository.deleteByEventId(eventId);
+
+            // Tạo bản ghi mới trong bảng event_categories
+            EventCategoryEntity newCategory = new EventCategoryEntity();
+            newCategory.setEventId(eventId);
+            newCategory.setCategoryId(request.getCategoryId());
+
+            eventCategoryRepository.save(newCategory);
+        } // 👈 Đã gán từ controller: user.getId()
 
         // 🔄 Duyệt qua danh sách lịch diễn
         if (request.getShowings() != null) {

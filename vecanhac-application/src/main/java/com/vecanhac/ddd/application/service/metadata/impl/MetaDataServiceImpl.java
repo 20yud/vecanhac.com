@@ -39,6 +39,7 @@ public class MetaDataServiceImpl implements MetaDataService {
                     LocationDTO dto = new LocationDTO();
                     dto.setId(l.getId());
                     dto.setCity(l.getCity());
+                    dto.setPhoneCode(l.getPhoneCode());
                     return dto;
                 })
                 .toList();

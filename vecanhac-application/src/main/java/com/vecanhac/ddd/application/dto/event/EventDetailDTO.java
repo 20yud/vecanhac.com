@@ -21,6 +21,8 @@ public class EventDetailDTO {
     private String venue;
     private Double minTicketPrice;
     private String andress;
+    private Long locationId;
+    private Long categoryId;
 
     private String status; // 👈 thêm trường này
 

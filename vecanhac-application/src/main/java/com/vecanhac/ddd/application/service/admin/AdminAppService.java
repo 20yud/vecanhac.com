@@ -1,5 +1,7 @@
 package com.vecanhac.ddd.application.service.admin;
 
+import com.vecanhac.ddd.application.dto.category.CategoryDTO;
+import com.vecanhac.ddd.application.dto.location.LocationDTO;
 import com.vecanhac.ddd.domain.event.AdminEventSearchCriteria;
 import com.vecanhac.ddd.application.dto.admin.AdminEventSummaryDTO;
 import com.vecanhac.ddd.application.dto.admin.AdminUserDTO;
@@ -25,7 +27,13 @@ public interface AdminAppService {
     List<AdminEventSummaryDTO> searchEvents(AdminEventSearchCriteria criteria);
     void changeEventStatus(Long eventId, String newStatus);
 
+    List<CategoryDTO> getAllCategories();
+    CategoryDTO createCategory(CategoryDTO dto);
+    void deleteCategory(Long id);
 
+    List<LocationDTO> getAllLocations();
+    LocationDTO createLocation(LocationDTO dto);
+    void deleteLocation(Long id);
 
 
 
