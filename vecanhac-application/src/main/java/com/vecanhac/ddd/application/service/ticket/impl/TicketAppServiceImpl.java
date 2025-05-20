@@ -9,6 +9,8 @@ import com.vecanhac.ddd.application.config.AppProperties;
 import com.vecanhac.ddd.application.dto.order.CreateOrderRequestDTO;
 import com.vecanhac.ddd.application.dto.order.MyOrderDTO;
 import com.vecanhac.ddd.application.dto.order.OrderItemInOrderDTO;
+import com.vecanhac.ddd.application.service.discountcodeusage.DiscountCodeUsageService;
+import com.vecanhac.ddd.application.validator.DiscountValidator;
 import com.vecanhac.ddd.domain.discountcode.DiscountCodeEntity;
 import com.vecanhac.ddd.domain.discountcode.DiscountCodeRepository;
 import com.vecanhac.ddd.domain.event.EventEntity;
@@ -28,9 +30,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
+import com.vecanhac.ddd.domain.user.UserEntity;
+
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
@@ -52,6 +58,9 @@ public class TicketAppServiceImpl implements TicketAppService {
     private final AppProperties appProperties;
     private final DiscountCodeRepository discountCodeRepository;
     private final OrderItemRepository orderItemRepository;
+    private final DiscountCodeUsageService discountUsageService;
+    private final DiscountValidator discountValidator;
+
 
 
     private static final Logger log = LoggerFactory.getLogger(TicketAppServiceImpl.class);
@@ -152,6 +161,32 @@ public class TicketAppServiceImpl implements TicketAppService {
 
         BigDecimal discountAmount = BigDecimal.ZERO;
         String appliedDiscountCode = null;
+        DiscountCodeEntity appliedDiscount = null;
+
+        if (StringUtils.hasText(request.getDiscountCode())) {
+            DiscountCodeEntity discount = discountCodeRepository
+                    .findByCodeAndIsActiveTrue(request.getDiscountCode())
+                    .orElseThrow(() -> new RuntimeException("Mã giảm giá không hợp lệ hoặc không còn hiệu lực"));
+
+            // Validate điều kiện người dùng
+            discountValidator.validate(discount, request.getUserId(), totalQuantity);
+
+            // Tính số tiền được giảm
+            if (discount.getFixedAmount() != null) {
+                discountAmount = discount.getFixedAmount();
+            } else {
+                BigDecimal calculated = totalAmount.multiply(BigDecimal.valueOf(discount.getPercentage()))
+                        .divide(BigDecimal.valueOf(100));
+                if (discount.getMaxDiscountAmount() != null) {
+                    calculated = calculated.min(discount.getMaxDiscountAmount());
+                }
+                discountAmount = calculated;
+            }
+
+            appliedDiscountCode = discount.getCode();
+            appliedDiscount = discount;
+        }
+
 
         // ✅ Nếu có mã giảm giá
         if (request.getDiscountCode() != null && !request.getDiscountCode().isEmpty()) {
@@ -187,6 +222,16 @@ public class TicketAppServiceImpl implements TicketAppService {
         orderItems.forEach(item -> item.setOrder(order));
 
         orderRepository.save(order);
+        if (appliedDiscount != null) {
+            discountUsageService.recordUsage(
+                    appliedDiscount,
+                    UserEntity.builder().id(request.getUserId()).build(),
+                    order.getId(),
+                    true
+            );
+        }
+
+
         return order.getId();
     }
 

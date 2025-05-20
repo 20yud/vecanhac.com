@@ -1,92 +1,92 @@
-🔐 1. Phân quyền
-Sử dụng UserRole với ADMIN
+✅ Tổng quan các chức năng admin bạn đã có
+Chức năng	Đã có	Ghi chú
+Quản lý sự kiện (duyệt/từ chối)	✅	Có lọc theo status=PENDING, API rõ
+Quản lý người dùng (vai trò, khoá)	✅	Có nâng cấp role, khoá tài khoản
+Thống kê hệ thống	✅	Có stats tổng và theo doanh thu
+Quản lý mã giảm giá	✅	Tạo, sửa, giới hạn lượt dùng
+Quản lý danh mục / địa điểm	✅	Có API cho categories / locations
 
-Tất cả API admin/** đều yêu cầu @PreAuthorize("hasRole('ADMIN')")
+🔍 Những điểm bạn còn thiếu hoặc nên bổ sung:
+🔐 1. Logging hoạt động quản trị (audit log)
+Hiện chưa có ghi lại ai đã duyệt/từ chối sự kiện, khoá user, v.v.
 
-UserPrincipal đã cung cấp ROLE_ADMIN qua SimpleGrantedAuthority
+Đây là bắt buộc nếu hệ thống scale hoặc có nhiều admin.
 
-🛠 2. Các module chính cho Admin
-📍 2.1. Quản lý sự kiện (Moderate Events)
-Duyệt / từ chối sự kiện mới (status = PENDING)
+✅ Gợi ý: Tạo bảng admin_actions_log:
 
-Xem danh sách sự kiện theo status
-
-📌 API:
-
-bash
+sql
 Copy
 Edit
-GET    /api/admin/events?status=PENDING
-PATCH  /api/admin/events/{id}/approve
-PATCH  /api/admin/events/{id}/reject
-👤 2.2. Quản lý người dùng (Users)
-Xem danh sách toàn bộ tài khoản
+id | admin_id | action_type | target_id | entity | timestamp | note
+👥 2. Phân quyền chi tiết (RBAC / ABAC)
+Hiện tại có mỗi hasRole('ADMIN') → OK ở giai đoạn đầu.
 
-Lọc theo vai trò USER, ORG, ADMIN
+Nhưng nếu bạn muốn sau này phân quyền sâu hơn (VD: sub-admin chỉ được duyệt events, không được khoá users), thì nên có:
 
-Nâng cấp vai trò (USER → ORG)
-
-Khóa tài khoản vi phạm
-
-📌 API:
-
-bash
+java
 Copy
 Edit
-GET    /api/admin/users
-PATCH  /api/admin/users/{id}/upgrade-role
-PATCH  /api/admin/users/{id}/lock
-📊 2.3. Thống kê hệ thống (System Stats)
-Tổng số người dùng / sự kiện / đơn hàng / vé bán
+@PreAuthorize("hasAuthority('EVENT_MODERATION')")
+✅ Gợi ý:
 
-Doanh thu theo ngày / tháng
+Tạo enum AdminPermission
 
-Biểu đồ trạng thái sự kiện
+Gán theo user trong UserPrincipal
 
-📌 API:
+📈 3. Bảng điều khiển thống kê (dashboard UI-ready)
+Bạn có API:
 
-pgsql
+bash
 Copy
 Edit
 GET /api/admin/stats
-GET /api/admin/stats/revenue?range=month
-🎟 2.4. Quản lý mã giảm giá (Coupons)
-Tạo, sửa, xóa mã giảm giá
+GET /api/admin/stats/revenue
+Nhưng cần thêm:
 
-Gán mã theo eventId, giới hạn lượt dùng
+📊 /api/admin/stats/event-status-chart: thống kê số sự kiện theo trạng thái (PENDING, APPROVED, REJECTED)
 
-📌 API:
+📅 /api/admin/stats/revenue?range=day/week/month: nên trả về labels + data[] → FE dễ plot chart
 
-bash
+✅ Nếu có thể: Trả về dạng JSON như:
+
+json
 Copy
 Edit
-GET     /api/admin/coupons
-POST    /api/admin/coupons
-PUT     /api/admin/coupons/{id}
-DELETE  /api/admin/coupons/{id}
-🗂 2.5. Quản lý danh mục / địa điểm
-Thêm / xoá danh mục sự kiện
+{
+  "labels": ["T1", "T2", "T3"],
+  "data": [100000, 200000, 120000]
+}
+🗃️ 4. Pagination, search, filter cho tất cả danh sách
+Chắc chắn bạn nên thêm vào các API GET /admin/events, GET /admin/users, GET /admin/coupons:
 
-Hiển thị danh sách tỉnh thành (đã có sẵn dữ liệu)
-
-📌 API:
-
-pgsql
+http
 Copy
 Edit
-GET  /api/admin/locations
-POST /api/admin/categories
-🧱 3. Kiến trúc code DDD (Spring Boot)
-Controller: AdminEventController, AdminUserController, ...
+?status=PENDING&page=1&size=10&sort=createdAt,desc&keyword=abc
+➡️ Điều này cực kỳ cần cho performance (khi data lớn).
 
-Application: AdminEventService, AdminStatsService, ...
+📦 5. Soft delete và trạng thái hoạt động
+Với categories, locations, discounts, bạn có thể thêm cờ isDeleted hoặc isActive thay vì xoá cứng.
 
-DTO: AdminApproveEventDTO, AdminUserSummaryDTO, ...
+Điều này cho phép rollback, hoặc tracking lịch sử sửa/xoá.
 
-🧪 4. Gợi ý triển khai đầu tiên
-Ưu tiên làm module Moderate Event trước vì:
+🔁 6. Retry / rollback actions
+Khi admin duyệt sai, hoặc khóa nhầm user → bạn nên có khả năng rollback.
 
-Gắn liền với flow tổ chức (ORG) tạo sự kiện
+Ví dụ: Duyệt lại event, hoặc mở lại tài khoản bị khoá.
 
-Đơn giản, dễ test UI (chỉ cần danh sách + 2 nút duyệt / từ chối)
+🧪 Bonus: Các công cụ bạn có thể tích hợp vào admin sau này
+Tính năng nâng cao	Mục tiêu
+Export Excel	Tải danh sách user/event/report
+Email Notification	Gửi mail cho user khi bị khoá / được duyệt
+Activity Feed	Hiển thị lịch sử hoạt động (log dashboard)
+Redis Cache	Cache stats để tránh query DB mỗi lần
+Admin Action Queue	Đưa action duyệt vào queue (Kafka) để async / audit chặt
 
+✅ Tổng kết đánh giá hệ thống admin của bạn
+Yếu tố	Trạng thái	Gợi ý
+Chức năng cơ bản	✅ Đầy đủ	Bạn đã làm rất tốt
+Bảo mật phân quyền	⚠️ Ổn (role-based), nhưng có thể nâng cấp chi tiết hơn	
+Audit / Logging	❌ Chưa có	Nên thêm bảng log hành vi admin
+Dashboard hiển thị số liệu	⚠️ API có, cần chuẩn hoá labels + data	
+Pagination / filter	⚠️ Nếu chưa có thì cần bổ sung	

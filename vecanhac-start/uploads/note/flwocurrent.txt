@@ -1,0 +1,162 @@
+Dưới đây là bản tổng hợp đầy đủ những gì bạn đã triển khai cho hệ thống vecanhac.com, cả backend (Spring Boot DDD) lẫn frontend (Next.js) — được chia theo từng phần chức năng, đúng với tiến độ bạn đã thực hiện.
+
+🧱 I. Backend (Spring Boot - DDD Architecture)
+📁 1. Kiến trúc module
+vecanhac-domain: chứa entity, repository, enum, domain logic
+
+vecanhac-application: chứa DTOs, services, mapper, flow nghiệp vụ
+
+vecanhac-controller: REST controllers
+
+vecanhac-infrastructure: Redis, JWT, Security, Mail, Scheduler
+
+vecanhac-start: main entry point
+
+🎫 2. Hệ thống đặt vé
+✅ Chọn vé → điền thông tin → thanh toán
+
+✅ Tính tổng tiền, áp mã giảm giá (code đã kiểm tra eventId, minQuantity, usageLimit, expired)
+
+✅ Sinh QR code, tạo Order + OrderItem
+
+⚠️ Có logic tính discountAmount nhưng chưa có Redis lock
+
+⚠️ Đơn chưa thanh toán vẫn tồn tại (chưa có timeout 15 phút)
+
+✅ Dùng @Transactional để đảm bảo atomic
+
+🔐 3. Xác thực & phân quyền
+✅ Đăng ký qua email OTP (với bảng users có is_verified)
+
+✅ Đăng nhập → sinh JWT → lưu vào cookie
+
+✅ Phân quyền USER, ORG, ADMIN
+
+✅ Dùng @PreAuthorize("hasRole('ADMIN')") cho admin
+
+👥 4. Người dùng
+✅ Tạo user
+
+✅ Nâng cấp role từ USER → ORG
+
+✅ Khóa user (soft lock)
+
+✅ Truy vấn danh sách user theo role
+
+📅 5. Sự kiện, suất chiếu, vé
+✅ Tạo sự kiện gồm Event + Showing + Ticket
+
+✅ Tách flow PENDING → APPROVED khi tạo sự kiện
+
+✅ Quản lý bởi ORG hoặc ADMIN
+
+✅ PATCH-style update (update từng phần không xoá toàn bộ)
+
+✅ Chọn địa điểm + danh mục từ bảng locations, categories
+
+🛍 6. Mã giảm giá (Coupons)
+✅ Tạo mã giảm giá gắn với eventId (nếu có)
+
+✅ Giới hạn số lần dùng / người / toàn hệ thống
+
+✅ Kiểm tra qua API /discounts/check
+
+✅ DTO DiscountRequestDTO, DiscountResponseDTO
+
+✅ Bảng discount_code_usage log lượt dùng
+
+📊 7. Admin dashboard
+✅ Duyệt / từ chối sự kiện
+
+✅ Danh sách user
+
+✅ Thống kê số lượng người dùng / đơn hàng / vé
+
+✅ Doanh thu theo ngày/tháng
+
+⚠️ Chưa có log hành vi admin
+
+⚠️ API thống kê dạng chart chưa chuẩn hóa labels + data
+
+🧠 8. Redis (đang chuẩn bị)
+⚠️ Chưa setup Redis để:
+
+Lock vé
+
+Giữ bookingSessionId tạm thời
+
+Tự huỷ đơn chưa thanh toán
+
+✅ FE đã sinh bookingSessionId và truyền suốt flow → đã sẵn sàng dùng Redis
+
+🎨 II. Frontend (Next.js + Tailwind + Framer Motion)
+🌐 1. Cấu trúc chính
+app/: từng page tương ứng flow
+
+components/: EventCard, Navbar, AuthModal...
+
+lib/api/: gọi API
+
+✅ Tách các page: select-ticket, question-ticket, checkout-ticket, my-tickets
+
+🎫 2. Đặt vé (booking flow UI)
+➤ SelectTicketPage:
+✅ Load event + showings + tickets
+
+✅ Chọn số lượng vé
+
+✅ Sinh bookingSessionId → truyền qua URL
+
+➤ QuestionTicketPage:
+✅ Lấy lại vé từ URL
+
+✅ Giao diện nhập email/phone (readonly)
+
+✅ Mã giảm giá: gửi request BE và hiển thị message
+
+➤ CheckoutTicketPage:
+✅ Tổng tiền
+
+✅ Mã giảm giá đã áp
+
+✅ Chọn phương thức thanh toán
+
+✅ Gửi checkout lên BE
+
+✅ Hiển thị countdown + huỷ nếu hết thời gian
+
+📋 3. MyTicketsPage
+✅ Xem danh sách đơn hàng (Order)
+
+✅ Expand để xem danh sách vé (OrderItem)
+
+✅ Hiển thị QR code
+
+🔒 4. Auth / User
+✅ Modal đăng nhập, đăng ký
+
+✅ Gửi OTP email
+
+✅ Form quên mật khẩu → OTP → tạo mật khẩu mới
+
+🛠 5. Kỹ thuật nâng cao
+✅ bookingSessionId được truyền suốt 3 page
+
+✅ localStorage được dọn dẹp sau khi đặt vé xong hoặc hết thời gian
+
+⚠️ Chưa gọi API lock vé tạm thời (khi chọn vé)
+
+🧾 Tổng kết luồng đặt vé (booking flow full-stack)
+Bước	FE	BE
+1. Chọn vé	Giao diện chọn vé, sinh bookingSessionId	—
+2. Bảng câu hỏi	Truy xuất vé, điền email, mã giảm giá	Validate, tính discountAmount
+3. Thanh toán	Hiển thị tổng tiền, phương thức thanh toán	Tạo Order + OrderItem, gắn bookingSessionId
+4. Xem vé đã mua	Trang /my-tickets	Lấy order theo userId, join order items
+
+🎯 Gợi ý việc tiếp theo (nếu bạn muốn nâng cấp)
+Hạng mục	Mục tiêu
+Redis Lock + giữ vé tạm thời	Chống oversell, giữ vé 15 phút
+Log admin actions	Ghi lại duyệt/từ chối/khóa...
+Dashboard stats chart API	Chuẩn hóa labels + data
+Rate-limit + Queue (Kafka, v.v.)	Scale hệ thống lớn
+Test API load (k6 / Postman / Apache JMeter)	Đo sức chịu tải thực tế

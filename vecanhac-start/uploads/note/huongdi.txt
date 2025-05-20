@@ -64,3 +64,12 @@ Kịch bản JMeter test checkout API
 
 Rate-limiter Redis bằng Spring Boot filter
 → Mình có thể gửi ngay!
+
+🧱 Mô hình chuẩn chuyên nghiệp cho high-concurrency (1M+ requests):
+Thành phần	Vai trò	Có trong hệ thống bạn chưa?
+✅ Redis	Giữ chỗ vé tạm thời (bookingSessionId) với TTL	❌ Chưa
+✅ Redis Lock	Lock số lượng vé (prevent oversell)	❌ Chưa
+✅ Rate Limiter (Redis or Gateway)	Giới hạn request/IP/người	❌ Chưa
+✅ @Transactional + DB Constraints	Đảm bảo đơn hàng tạo đúng và rollback nếu lỗi	✔️ Có
+✅ Kafka (hoặc queue)	Tách xử lý async (email, log, analytics)	❌ Chưa
+✅ MySQL indexing & query tối ưu	DB vẫn là source of truth	✔️ Có (có thể tối ưu thêm)

@@ -11,4 +11,5 @@ public class DiscountRequestDTO {
     private String code;
     private int totalQuantity;
     private BigDecimal totalPrice;
+    private Long eventId; // cần để kiểm tra applicable_event_id
 }
