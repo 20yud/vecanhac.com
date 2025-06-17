@@ -42,12 +42,6 @@ public class TicketEntity {
     @Column(name = "sale_end")
     private LocalDateTime saleEnd;
 
-    @Column(length = 20)
-    private String color;
-
-    @Column(name = "image_url", columnDefinition = "TEXT")
-    private String imageUrl;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TicketStatus status;

@@ -25,6 +25,7 @@ public class SecurityFilterConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/events/**").permitAll()
+                        .requestMatchers("/api/upload/**").permitAll() // ✅ Cho phép không cần auth
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/organizer/**").hasAnyRole("ORG", "ADMIN")
                         .anyRequest().authenticated()

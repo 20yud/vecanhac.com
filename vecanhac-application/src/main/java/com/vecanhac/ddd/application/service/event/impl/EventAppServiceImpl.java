@@ -195,6 +195,39 @@ public class EventAppServiceImpl implements EventAppService {
         return dto;
     }
 
+    @Override
+    public List<EventResponseDTO> getMyEvents(Long organizerId, MyEventSearchCriteria criteria) {
+        EventStatus status = null;
+
+        if (StringUtils.hasText(criteria.getStatus())) {
+            try {
+                status = EventStatus.valueOf(criteria.getStatus().toUpperCase());
+            } catch (IllegalArgumentException ex) {
+                log.warn("Giá trị status không hợp lệ: {}", criteria.getStatus());
+            }
+        }
+
+        Boolean upcoming = null;
+        if ("upcoming".equalsIgnoreCase(criteria.getTime())) {
+            upcoming = true;
+        } else if ("past".equalsIgnoreCase(criteria.getTime())) {
+            upcoming = false;
+        }
+
+        MyEventSearchFilter filter = MyEventSearchFilter.builder()
+                .organizerId(organizerId)
+                .keyword(criteria.getKeyword())
+                .status(status)
+                .upcoming(upcoming)
+                .build();
+
+        List<EventEntity> events = myEventRepository.searchMyEvents(filter);
+        return events.stream()
+                .map(eventMapper::toEventResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+
     @Transactional
     @Override
     public EventResponseDTO createEvent(CreateEventRequestDTO request) {
@@ -228,7 +261,7 @@ public class EventAppServiceImpl implements EventAppService {
         event.setLocationId(request.getLocationId());
         event.setCreatedAt(LocalDateTime.now());
         event.setStatus(EventStatus.PENDING);
-        event.setOrganizerId(request.getOrganizerId());
+        event.setOrganizerId(request.getOrganizerId());        // 👈 Đã gán từ controller: user.getId()
         EventEntity savedEvent = eventRepository.save(event);
         if (request.getCategoryId() != null) {
             EventCategoryEntity newCategory = new EventCategoryEntity();
@@ -236,12 +269,6 @@ public class EventAppServiceImpl implements EventAppService {
             newCategory.setCategoryId(request.getCategoryId());
             eventCategoryRepository.save(newCategory);
         }
-
-
-
-        // 👈 Đã gán từ controller: user.getId()
-
-
 
         for (CreateShowingDTO showingReq : request.getShowings()) {
             ShowingEntity showing = new ShowingEntity();
@@ -263,8 +290,6 @@ public class EventAppServiceImpl implements EventAppService {
                 ticket.setQuantitySold(0);
                 ticket.setSaleStart(ticketReq.getSaleStart());
                 ticket.setSaleEnd(ticketReq.getSaleEnd());
-                ticket.setColor(ticketReq.getColor());
-                ticket.setImageUrl(ticketReq.getImageUrl());
                 ticket.setStatus(TicketStatus.AVAILABLE);
 
                 ticketRepository.save(ticket);
@@ -275,37 +300,7 @@ public class EventAppServiceImpl implements EventAppService {
         return mapToResponseDTO(savedEvent);
     }
 
-    @Override
-    public List<EventResponseDTO> getMyEvents(Long organizerId, MyEventSearchCriteria criteria) {
-        EventStatus status = null;
 
-        if (StringUtils.hasText(criteria.getStatus())) {
-            try {
-                status = EventStatus.valueOf(criteria.getStatus().toUpperCase());
-            } catch (IllegalArgumentException ex) {
-                log.warn("Giá trị status không hợp lệ: {}", criteria.getStatus());
-            }
-        }
-
-        Boolean upcoming = null;
-        if ("upcoming".equalsIgnoreCase(criteria.getTime())) {
-            upcoming = true;
-        } else if ("past".equalsIgnoreCase(criteria.getTime())) {
-            upcoming = false;
-        }
-
-        MyEventSearchFilter filter = MyEventSearchFilter.builder()
-                .organizerId(organizerId)
-                .keyword(criteria.getKeyword())
-                .status(status)
-                .upcoming(upcoming)
-                .build();
-
-        List<EventEntity> events = myEventRepository.searchMyEvents(filter);
-        return events.stream()
-                .map(eventMapper::toEventResponseDTO)
-                .collect(Collectors.toList());
-    }
 
     @Override
     @Transactional
@@ -394,8 +389,6 @@ public class EventAppServiceImpl implements EventAppService {
                         if (ticketDTO.getQuantityTotal() != null) ticket.setQuantityTotal(ticketDTO.getQuantityTotal());
                         if (ticketDTO.getSaleStart() != null) ticket.setSaleStart(ticketDTO.getSaleStart());
                         if (ticketDTO.getSaleEnd() != null) ticket.setSaleEnd(ticketDTO.getSaleEnd());
-                        if (ticketDTO.getColor() != null) ticket.setColor(ticketDTO.getColor());
-                        if (ticketDTO.getImageUrl() != null) ticket.setImageUrl(ticketDTO.getImageUrl());
 
                         ticketRepository.save(ticket);
                     }

@@ -293,8 +293,6 @@ public class AdminAppServiceImpl implements AdminAppService {
                         if (ticketDTO.getQuantityTotal() != null) ticket.setQuantityTotal(ticketDTO.getQuantityTotal());
                         if (ticketDTO.getSaleStart() != null) ticket.setSaleStart(ticketDTO.getSaleStart());
                         if (ticketDTO.getSaleEnd() != null) ticket.setSaleEnd(ticketDTO.getSaleEnd());
-                        if (ticketDTO.getColor() != null) ticket.setColor(ticketDTO.getColor());
-                        if (ticketDTO.getImageUrl() != null) ticket.setImageUrl(ticketDTO.getImageUrl());
 
                         ticketRepository.save(ticket);
                     }
